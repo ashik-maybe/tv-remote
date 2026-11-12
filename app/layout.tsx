@@ -1,4 +1,3 @@
-import type { Viewport } from "next"
 import { Geist_Mono, Outfit } from "next/font/google"
 
 import "./globals.css"
@@ -13,14 +12,6 @@ export const metadata = {
   description: "Find and control your Android TV / Google TV on your home network.",
 }
 
-export const viewport: Viewport = {
-  themeColor: [
-    // Follow the same tokens as globals.css (--background).
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#12141a" },
-  ],
-}
-
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
@@ -30,8 +21,9 @@ const fontMono = Geist_Mono({
 // correct class is already on <html> — no flash of the wrong theme.
 // Raw <script> inside a *server* component ships as literal HTML (same
 // pattern as the JSON-LD guide); a script in a *client* component would
-// never execute on the client. Mirrors lib/theme-store.ts.
-const themeInit = `(function(){try{var mode=localStorage.getItem("theme");if(mode!=="light"&&mode!=="dark"&&mode!=="system")mode="system";var resolved=mode==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):mode;var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
+// never execute on the client. Mirrors lib/theme-store.ts: light default,
+// "dark" only when stored; no prefers-color-scheme involvement.
+const themeInit = `(function(){try{var dark=localStorage.getItem("theme")==="dark";var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(dark?"dark":"light");root.style.colorScheme=dark?"dark":"light";var meta=document.querySelector('meta[name="theme-color"]');if(!meta){meta=document.createElement("meta");meta.name="theme-color";document.head.appendChild(meta)}meta.content=dark?"#151620":"#fbfaf7";}catch(e){}})();`
 
 export default function RootLayout({
   children,

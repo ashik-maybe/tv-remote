@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { setTheme, useResolvedTheme } from "@/lib/theme-store"
+import { setTheme, useThemeMode } from "@/lib/theme-store"
 
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -18,7 +18,7 @@ function isTypingTarget(target: EventTarget | null) {
 }
 
 function ThemeHotkey() {
-  const resolved = useResolvedTheme()
+  const current = useThemeMode()
 
   React.useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -38,7 +38,7 @@ function ThemeHotkey() {
         return
       }
 
-      setTheme(resolved === "dark" ? "light" : "dark")
+      setTheme(current === "dark" ? "light" : "dark")
     }
 
     window.addEventListener("keydown", onKeyDown)
@@ -46,7 +46,7 @@ function ThemeHotkey() {
     return () => {
       window.removeEventListener("keydown", onKeyDown)
     }
-  }, [resolved])
+  }, [current])
 
   return null
 }

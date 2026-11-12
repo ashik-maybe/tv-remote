@@ -74,9 +74,6 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-5 p-4 pb-10 sm:max-w-xl">
       <header className="flex items-center gap-3 pt-2">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-card ring-1 ring-border">
-          <MdTv className="size-6 text-primary" aria-hidden="true" />
-        </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold leading-tight">TV Remote</h1>
           <p className="text-xs text-muted-foreground">Same Wi-Fi network required</p>
@@ -234,9 +231,7 @@ export default function Home() {
       )}
 
       <p className="mt-auto px-1 pt-4 text-center text-[11px] leading-relaxed text-muted-foreground">
-        Works on Android TV &amp; Google TV. The TV shows a 6-character code (digits, sometimes letters A-F) on first pair.
-        <br />
-        Theme follows your system by default — tap the theme button up top to change it.
+        Works on Android TV &amp; Google TV — the TV shows a 6-character code on first pair.
       </p>
     </main>
   )

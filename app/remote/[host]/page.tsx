@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeMute, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdHelpOutline, MdRefresh, MdKeyboard, MdClose } from "react-icons/md"
+import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeMute, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdHelpOutline, MdRefresh, MdClose } from "react-icons/md"
+import { KeyHint } from "@/components/key-hint"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +11,6 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { DeviceSwitcher } from "@/components/device-switcher"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Dialog,
@@ -60,28 +60,6 @@ const APP_TILES: AppTile[] = [
   { name: "Netflix", letter: "N", link: "https://www.netflix.com", brand: "#E50914" },
   { name: "Prime Video", letter: "P", link: "https://www.primevideo.com", brand: "#00A8E1" },
   { name: "Disney+", letter: "D", link: "https://www.disneyplus.com", brand: "#113CCF" },
-  { name: "Spotify", letter: "S", link: "https://www.spotify.com", brand: "#1DB954" },
-  { name: "Twitch", letter: "T", link: "https://www.twitch.tv", brand: "#9146FF" },
-  { name: "Hulu", letter: "H", link: "https://www.hulu.com", brand: "#1CE783" },
-  { name: "Max", letter: "M", link: "https://www.max.com", brand: "#002BE7" },
-]
-
-/** Hotkeys 1–4 launch the first four tiles. */
-const APP_SHORTCUTS = APP_TILES.slice(0, 4)
-
-const SHORTCUT_ROWS: { keys: string; label: string }[] = [
-  { keys: "← ↑ ↓ →", label: "D-pad" },
-  { keys: "Enter", label: "OK" },
-  { keys: "Bksp · Esc", label: "Back" },
-  { keys: "Space · K", label: "Play · Pause" },
-  { keys: "H", label: "Home" },
-  { keys: "C", label: "Menu" },
-  { keys: "P", label: "Power" },
-  { keys: "+ / −", label: "Volume" },
-  { keys: "M", label: "Mute" },
-  { keys: "[ · ]", label: "Prev · Next" },
-  { keys: "1 – 4", label: "App shortcuts" },
-  { keys: "D", label: "Toggle theme" },
 ]
 
 export default function RemotePage() {
@@ -96,8 +74,8 @@ export default function RemotePage() {
   const [text, setText] = useState("")
   const [pairDismissed, setPairDismissed] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [errorDismissed, setErrorDismissed] = useState(false)
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const codeInputRef = useRef<HTMLInputElement | null>(null)
   const sendKeyRef = useRef<(key: string) => Promise<void>>(() => Promise.resolve())
@@ -360,7 +338,7 @@ export default function RemotePage() {
         case "2":
         case "3":
         case "4": {
-          const app = APP_SHORTCUTS[Number(key) - 1]
+          const app = APP_TILES[Number(key) - 1]
           if (app) action = () => launchApp(app.link)
           break
         }
@@ -402,28 +380,22 @@ export default function RemotePage() {
         <div className="flex min-w-0 flex-1 items-center">
           <DeviceSwitcher host={host} />
         </div>
-        <Badge
-          variant="outline"
-          className="h-7 max-w-36 shrink-0 gap-1.5 px-2.5 text-[11px] font-medium text-muted-foreground"
-        >
-          <span className={cn("size-1.5 shrink-0 rounded-full", statusDot)} aria-hidden="true" />
-          <span className="truncate">{statusLabel}</span>
-        </Badge>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Keyboard shortcuts"
-          aria-pressed={shortcutsOpen}
-          title="Keyboard shortcuts"
-          onClick={() => setShortcutsOpen((open) => !open)}
-        >
-          <MdKeyboard className="size-5" aria-hidden="true" />
-        </Button>
+        {state !== "ready" && (
+          <Badge
+            variant="outline"
+            className="h-7 max-w-36 shrink-0 gap-1.5 px-2.5 text-[11px] font-medium text-muted-foreground"
+          >
+            <span className={cn("size-1.5 shrink-0 rounded-full", statusDot)} aria-hidden="true" />
+            <span className="truncate">{statusLabel}</span>
+          </Badge>
+        )}
         <ThemeToggle />
       </header>
 
-      <Card className="lg:col-span-2">
-        <CardContent className="flex items-center justify-between gap-3 p-4">
+      <section
+        aria-label="Current app and power"
+        className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 lg:col-span-2"
+      >
           <div className="flex min-w-0 items-center gap-3">
             <MdTv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <div className="min-w-0 text-sm">
@@ -440,15 +412,15 @@ export default function RemotePage() {
           <Button
             variant="outline"
             size="icon"
-            className={cn("shrink-0", press)}
+            className={cn("relative shrink-0", press)}
             onClick={sendPower}
             disabled={!isReady}
-            aria-label="Toggle power" title="Power (P)"
+            aria-label="Toggle power" title="Power"
           >
             <MdPowerSettingsNew className="size-5" aria-hidden="true" />
+            <KeyHint label="P" />
           </Button>
-        </CardContent>
-      </Card>
+        </section>
 
       {state === "error" && !errorDismissed && (
         <Alert
@@ -505,95 +477,116 @@ export default function RemotePage() {
         </Alert>
       )}
 
-      {/* Keypad — left column on lg, top on small screens */}
-      <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home (H)">
-            <MdHome className="size-7" aria-hidden="true" />
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up (↑)">
-            <MdKeyboardArrowUp className="size-8" aria-hidden="true" />
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back (Backspace · Esc)">
+      {/* Remote surface — nav band + connected D-pad */}
+      <section aria-label="Remote" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:gap-4 sm:p-4">
+        {/* Nav band */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back">
             <MdArrowBack className="size-7" aria-hidden="true" />
+            <KeyHint label="Esc" />
           </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left (←)">
-            <MdKeyboardArrowLeft className="size-8" aria-hidden="true" />
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home">
+            <MdHome className="size-7" aria-hidden="true" />
+            <KeyHint label="H" />
           </Button>
-          <Button className={cn("h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK (Enter)">
-            <span className="text-lg font-bold sm:text-xl">OK</span>
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right (→)">
-            <MdKeyboardArrowRight className="size-8" aria-hidden="true" />
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu (C)">
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu">
             <MdMenu className="size-7" aria-hidden="true" />
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down (↓)">
-            <MdKeyboardArrowDown className="size-8" aria-hidden="true" />
-          </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
-            <span className="flex items-center gap-1">
-              <MdPlayArrow className="size-6" aria-hidden="true" />
-              <MdPause className="size-6" aria-hidden="true" />
-            </span>
+            <KeyHint label="C" />
           </Button>
         </div>
-      </div>
+        {/* Connected D-pad */}
+        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-background/40 p-2 sm:gap-3 sm:p-3">
+          <span aria-hidden="true" />
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up">
+            <MdKeyboardArrowUp className="size-8" aria-hidden="true" />
+            <KeyHint label="↑" />
+          </Button>
+          <span aria-hidden="true" />
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left">
+            <MdKeyboardArrowLeft className="size-8" aria-hidden="true" />
+            <KeyHint label="←" />
+          </Button>
+          <Button className={cn("relative h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK">
+            <span className="text-lg font-bold sm:text-xl">OK</span>
+            <KeyHint label="Enter" />
+          </Button>
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right">
+            <MdKeyboardArrowRight className="size-8" aria-hidden="true" />
+            <KeyHint label="→" />
+          </Button>
+          <span aria-hidden="true" />
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down">
+            <MdKeyboardArrowDown className="size-8" aria-hidden="true" />
+            <KeyHint label="↓" />
+          </Button>
+          <span aria-hidden="true" />
+        </div>
 
-      {/* Right column — transport, volume, text, apps */}
-      <div className="flex flex-col gap-3 sm:gap-4">
         {/* Media transport, grouped like a player */}
-        <div className="grid grid-cols-5 gap-2 rounded-2xl border border-border bg-card p-3 sm:gap-3 sm:p-4 lg:gap-4">
+        <div className="grid grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_REWIND")} disabled={!isReady} aria-label="Rewind" title="Rewind">
             <MdFastRewind className="size-6" aria-hidden="true" />
           </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous ([)">
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous">
             <MdSkipPrevious className="size-6" aria-hidden="true" />
+            <KeyHint label="[" />
           </Button>
-          <Button className={cn("h-14 bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
+          <Button className={cn("relative h-14 bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / pause">
             <span className="flex items-center gap-1">
               <MdPlayArrow className="size-6 sm:size-7" aria-hidden="true" />
               <MdPause className="size-6 sm:size-7" aria-hidden="true" />
             </span>
+            <KeyHint label="Space" />
           </Button>
-          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next (])">
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next">
             <MdSkipNext className="size-6" aria-hidden="true" />
+            <KeyHint label="]" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_FAST_FORWARD")} disabled={!isReady} aria-label="Fast forward" title="Fast forward">
             <MdFastForward className="size-6" aria-hidden="true" />
           </Button>
         </div>
 
-        {/* Volume — bottom of the column, thumb-reachable */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down (-)">
+        {/* Volume — segmented rocker, thumb zone */}
+        <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border">
+          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down">
             <MdVolumeDown className="size-7" aria-hidden="true" />
+            <KeyHint label="−" />
           </Button>
-          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute (M)">
+          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute">
             <span className="flex items-center gap-2">
               <MdVolumeMute className="size-6" aria-hidden="true" />
               <span className="text-sm font-medium">Mute</span>
             </span>
+            <KeyHint label="M" />
           </Button>
-          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up (+)">
+          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up">
             <MdVolumeUp className="size-7" aria-hidden="true" />
+            <KeyHint label="+" />
           </Button>
         </div>
+      </section>
 
-        <div className="flex gap-2">
-          <Input
-            placeholder="Type on TV…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
-            disabled={!isReady}
-            className="h-12 sm:h-14"
-            aria-label="Text to type on TV"
-          />
-          <Button className={cn("h-12 sm:h-14", press)} onClick={sendTextNow} disabled={!isReady || !text.trim()}>
-            Send
-          </Button>
+      {/* Command rail — text input and app launcher */}
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type on TV…"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
+              disabled={!isReady}
+              className="h-12 sm:h-14"
+              aria-label="Text to type on TV"
+            />
+            <Button className={cn("h-12 sm:h-14", press)} onClick={sendTextNow} disabled={!isReady || !text.trim()}>
+              Send
+            </Button>
+          </div>
+          <p className="mt-1.5 px-0.5 text-[11px] leading-relaxed text-muted-foreground">
+            Keys pause while you type · Enter sends to the TV
+          </p>
         </div>
 
         {/* App launcher — letter monograms, brand colors */}
@@ -603,12 +596,12 @@ export default function RemotePage() {
               key={app.name}
               type="button"
               className={cn(
-                "flex h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-1 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 sm:h-20",
+                "relative flex h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-1 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 sm:h-20",
                 press,
               )}
               onClick={() => launchApp(app.link)}
               disabled={!isReady}
-              title={index < 4 ? `${app.name} — press ${index + 1}` : app.name}
+              title={app.name}
               aria-label={`Launch ${app.name}`}
             >
               <span
@@ -621,47 +614,11 @@ export default function RemotePage() {
               <span className="w-full truncate text-center text-[10px] font-medium leading-none sm:text-[11px]">
                 {app.name}
               </span>
+              <KeyHint label={String(index + 1)} />
             </button>
           ))}
         </div>
       </div>
-
-      {shortcutsOpen && (
-        <Card role="region" aria-label="Keyboard shortcuts" className="lg:col-span-2">
-          <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Keyboard shortcuts
-            </h2>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => setShortcutsOpen(false)}
-              className="h-7 text-xs text-muted-foreground"
-            >
-              Close
-            </Button>
-          </div>
-          <ul className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-            {SHORTCUT_ROWS.map(({ keys, label }) => (
-              <li
-                key={label}
-                className="flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5"
-              >
-                <kbd className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-                  {keys}
-                </kbd>
-                <span className="truncate text-muted-foreground">{label}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Keys work while this page is focused and the TV is connected. Shortcuts are
-            paused while typing in a field and while the pairing dialog is open.
-          </p>
-          </CardContent>
-        </Card>
-      )}
 
       <Dialog
         open={showPairDialog}

@@ -21,8 +21,8 @@ a Node-backed route handler talks to the TV using Google's official
   exposed via `GET /api/pair/status?host=` which the UI polls.
 - Device list is stored in `localStorage`. TVs are found automatically by
   scanning the LAN (see below) — no IP typing required for most setups.
-- Themes: follows your OS theme by default; tap the theme button (top
-  right) to cycle System → Day → Night.
+- Themes: Day is the default; tap the Day/Night toggle (top right, or
+  press `D`) to switch. Remembered on this device.
 
 ## Requirements
 
@@ -64,23 +64,28 @@ is open):
 | `H` | Home | `1`–`4` | YouTube, Netflix, Prime Video, Disney+ |
 | `C` | Menu | `D` | Toggle theme |
 
-Hover any button on the remote screen to see its key. The keyboard icon
-in the header toggles an on-screen shortcut card.
+Hover any button on the remote screen to see its key — the shortcut
+chip is pinned to the button's corner and only shows on desktops
+(hover + fine pointer); touch screens show none.
 
 ## Remote screen
 
 - **Responsive layout** — phones get the stacked thumb-zone layout
   (volume at the bottom, near your thumb); tablets and large screens
-  switch to a two-column grid (keypad left, media transport / volume /
-  text / apps right) with larger, ≥64 px targets.
+  switch to a two-column grid (nav band + connected D-pad and remote
+  surface left, text input and app tiles right) with larger, ≥64 px
+  targets. The nav band (Back · Home · Menu), transport row and segmented
+  volume rocker live inside one remote surface.
 - **Media transport** — grouped Rewind · Previous · Play/Pause ·
   Next · Fast Forward row.
 - **Haptics** — a short vibration on every key press (best-effort;
   silently no-ops on devices without the Vibration API).
 - **Press feedback** — every button visually depresses on tap.
+- **Status badge** — appears in the header only while pairing,
+  connecting, or error — a healthy connection shows no badge at all
+  (the TV's current app and volume live in the strip below the header).
 - **App launcher** — letter-monogram tiles (YouTube, Netflix, Prime
-  Video, Disney+, Spotify, Twitch, Hulu, Max); the first four are
-  bound to hotkeys `1`–`4`.
+  Video, Disney+), each bound to hotkeys `1`–`4`.
 - **Device switcher** — the header menu lists your saved TVs for
   one-tap switching without returning home.
 - **Accessibility** — visible focus rings, labels on every control,

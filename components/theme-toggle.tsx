@@ -1,48 +1,32 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { MdDarkMode, MdLightMode } from "react-icons/md"
 import { setTheme, useThemeMode } from "@/lib/theme-store"
-import { MdBrightnessAuto, MdDarkMode, MdLightMode } from "react-icons/md"
 import { Button } from "@/components/ui/button"
-
-const order = ["system", "light", "dark"] as const
-type Mode = (typeof order)[number]
-
-const meta: Record<Mode, { label: string; Icon: typeof MdBrightnessAuto }> = {
-  system: { label: "System", Icon: MdBrightnessAuto },
-  light: { label: "Day", Icon: MdLightMode },
-  dark: { label: "Night", Icon: MdDarkMode },
-}
+import { KeyHint } from "@/components/key-hint"
 
 export function ThemeToggle() {
   const theme = useThemeMode()
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  )
-
-  const current: Mode = mounted && (order as readonly string[]).includes(theme ?? "")
-    ? (theme as Mode)
-    : "system"
-  const { label, Icon } = meta[current]
-
-  const cycle = () => {
-    const next = order[(order.indexOf(current) + 1) % order.length]
-    setTheme(next)
-  }
+  const isDark = theme === "dark"
+  const label = isDark ? "Night" : "Day"
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={cycle}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-pressed={isDark}
       aria-label={`Theme: ${label}. Tap to switch.`}
       title={`Theme: ${label}`}
-      className="shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
+      className="relative shrink-0 gap-1.5 text-muted-foreground hover:text-foreground [@media(hover:hover)and(pointer:fine)]:pr-7"
     >
-      <Icon className="size-4" aria-hidden="true" />
-      <span className="text-xs font-medium">{mounted ? label : "Theme"}</span>
+      {isDark ? (
+        <MdDarkMode className="size-4" aria-hidden="true" />
+      ) : (
+        <MdLightMode className="size-4" aria-hidden="true" />
+      )}
+      <span className="text-xs font-medium">{label}</span>
+      <KeyHint label="D" />
     </Button>
   )
 }
