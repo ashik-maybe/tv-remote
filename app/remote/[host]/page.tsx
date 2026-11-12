@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Rewind, FastForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw, Keyboard, X } from "lucide-react"
+import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeMute, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdHelpOutline, MdRefresh, MdKeyboard, MdClose } from "react-icons/md"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { DeviceSwitcher } from "@/components/device-switcher"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
@@ -395,15 +397,18 @@ export default function RemotePage() {
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg sm:gap-5 sm:p-5 lg:max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-5 lg:gap-y-4 xl:max-w-5xl">
       <header className="flex items-center gap-1.5 pt-1 sm:gap-2 lg:col-span-2">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={() => router.push("/")}>
-          <ArrowLeft className="size-5" aria-hidden="true" />
+          <MdArrowBack className="size-5" aria-hidden="true" />
         </Button>
         <div className="flex min-w-0 flex-1 items-center">
           <DeviceSwitcher host={host} />
         </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          <span className={`size-1.5 shrink-0 rounded-full ${statusDot}`} aria-hidden="true" />
+        <Badge
+          variant="outline"
+          className="h-7 max-w-36 shrink-0 gap-1.5 px-2.5 text-[11px] font-medium text-muted-foreground"
+        >
+          <span className={cn("size-1.5 shrink-0 rounded-full", statusDot)} aria-hidden="true" />
           <span className="truncate">{statusLabel}</span>
-        </span>
+        </Badge>
         <Button
           variant="ghost"
           size="icon"
@@ -412,7 +417,7 @@ export default function RemotePage() {
           title="Keyboard shortcuts"
           onClick={() => setShortcutsOpen((open) => !open)}
         >
-          <Keyboard className="size-5" aria-hidden="true" />
+          <MdKeyboard className="size-5" aria-hidden="true" />
         </Button>
         <ThemeToggle />
       </header>
@@ -420,7 +425,7 @@ export default function RemotePage() {
       <Card className="lg:col-span-2">
         <CardContent className="flex items-center justify-between gap-3 p-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Tv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <MdTv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <div className="min-w-0 text-sm">
               <p className="truncate font-medium tabular-nums">
                 {snap?.currentApp ? snap.currentApp.split(".").pop() : "—"}
@@ -440,26 +445,26 @@ export default function RemotePage() {
             disabled={!isReady}
             aria-label="Toggle power" title="Power (P)"
           >
-            <Power className="size-5" aria-hidden="true" />
+            <MdPowerSettingsNew className="size-5" aria-hidden="true" />
           </Button>
         </CardContent>
       </Card>
 
       {state === "error" && !errorDismissed && (
-        <div
-          role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 lg:col-span-2"
+        <Alert
+          variant="destructive"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-destructive/40 bg-destructive/10 px-4 py-4 lg:col-span-2"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium text-destructive">Couldn&apos;t reach the TV</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <AlertTitle className="text-sm">Couldn&apos;t reach the TV</AlertTitle>
+            <AlertDescription className="mt-0.5 text-xs">
               Check the TV is on and on the same Wi-Fi network, then try again — or, if
               the TV is showing a code, enter it.
-            </p>
+            </AlertDescription>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button variant="outline" size="sm" onClick={reconnect}>
-              <RotateCcw className="size-4" aria-hidden="true" />
+              <MdRefresh className="size-4" aria-hidden="true" />
               Try again
             </Button>
             <Button
@@ -478,55 +483,59 @@ export default function RemotePage() {
               title="Dismiss"
               onClick={() => setErrorDismissed(true)}
             >
-              <X className="size-4" aria-hidden="true" />
+              <MdClose className="size-4" aria-hidden="true" />
             </Button>
           </div>
-        </div>
+        </Alert>
       )}
 
       {isPairing && pairDismissed && !manualOpen && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 lg:col-span-2">
-          <p className="text-sm">
-            <span className="font-medium">TV is ready to pair.</span>{" "}
-            <span className="text-muted-foreground">It&apos;s showing a 6-character code.</span>
-          </p>
+        <Alert
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-amber-500/40 bg-amber-500/10 px-4 py-4 lg:col-span-2"
+        >
+          <div className="min-w-0">
+            <AlertTitle className="text-sm">TV is ready to pair.</AlertTitle>
+            <AlertDescription className="mt-0.5 text-xs">
+              It&apos;s showing a 6-character code.
+            </AlertDescription>
+          </div>
           <Button size="sm" onClick={() => setManualOpen(true)}>
             Enter code
           </Button>
-        </div>
+        </Alert>
       )}
 
       {/* Keypad — left column on lg, top on small screens */}
       <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
         <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home (H)">
-            <Home className="size-7" aria-hidden="true" />
+            <MdHome className="size-7" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up (↑)">
-            <ChevronUp className="size-8" aria-hidden="true" />
+            <MdKeyboardArrowUp className="size-8" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back (Backspace · Esc)">
-            <CornerUpLeft className="size-7" aria-hidden="true" />
+            <MdArrowBack className="size-7" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left (←)">
-            <ChevronLeft className="size-8" aria-hidden="true" />
+            <MdKeyboardArrowLeft className="size-8" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK (Enter)">
             <span className="text-lg font-bold sm:text-xl">OK</span>
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right (→)">
-            <ChevronRight className="size-8" aria-hidden="true" />
+            <MdKeyboardArrowRight className="size-8" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu (C)">
-            <Menu className="size-7" aria-hidden="true" />
+            <MdMenu className="size-7" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down (↓)">
-            <ChevronDown className="size-8" aria-hidden="true" />
+            <MdKeyboardArrowDown className="size-8" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
             <span className="flex items-center gap-1">
-              <Play className="size-6" aria-hidden="true" />
-              <Pause className="size-6" aria-hidden="true" />
+              <MdPlayArrow className="size-6" aria-hidden="true" />
+              <MdPause className="size-6" aria-hidden="true" />
             </span>
           </Button>
         </div>
@@ -537,38 +546,38 @@ export default function RemotePage() {
         {/* Media transport, grouped like a player */}
         <div className="grid grid-cols-5 gap-2 rounded-2xl border border-border bg-card p-3 sm:gap-3 sm:p-4 lg:gap-4">
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_REWIND")} disabled={!isReady} aria-label="Rewind" title="Rewind">
-            <Rewind className="size-6" aria-hidden="true" />
+            <MdFastRewind className="size-6" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous ([)">
-            <SkipBack className="size-6" aria-hidden="true" />
+            <MdSkipPrevious className="size-6" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
             <span className="flex items-center gap-1">
-              <Play className="size-6 sm:size-7" aria-hidden="true" />
-              <Pause className="size-6 sm:size-7" aria-hidden="true" />
+              <MdPlayArrow className="size-6 sm:size-7" aria-hidden="true" />
+              <MdPause className="size-6 sm:size-7" aria-hidden="true" />
             </span>
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next (])">
-            <SkipForward className="size-6" aria-hidden="true" />
+            <MdSkipNext className="size-6" aria-hidden="true" />
           </Button>
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_FAST_FORWARD")} disabled={!isReady} aria-label="Fast forward" title="Fast forward">
-            <FastForward className="size-6" aria-hidden="true" />
+            <MdFastForward className="size-6" aria-hidden="true" />
           </Button>
         </div>
 
         {/* Volume — bottom of the column, thumb-reachable */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down (-)">
-            <Volume1 className="size-7" aria-hidden="true" />
+            <MdVolumeDown className="size-7" aria-hidden="true" />
           </Button>
           <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute (M)">
             <span className="flex items-center gap-2">
-              <VolumeX className="size-6" aria-hidden="true" />
+              <MdVolumeMute className="size-6" aria-hidden="true" />
               <span className="text-sm font-medium">Mute</span>
             </span>
           </Button>
           <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up (+)">
-            <Volume2 className="size-7" aria-hidden="true" />
+            <MdVolumeUp className="size-7" aria-hidden="true" />
           </Button>
         </div>
 
@@ -618,21 +627,20 @@ export default function RemotePage() {
       </div>
 
       {shortcutsOpen && (
-        <section
-          aria-label="Keyboard shortcuts"
-          className="rounded-2xl border border-border bg-card p-4 lg:col-span-2"
-        >
+        <Card role="region" aria-label="Keyboard shortcuts" className="lg:col-span-2">
+          <CardContent className="p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Keyboard shortcuts
             </h2>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => setShortcutsOpen(false)}
-              className="rounded text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-7 text-xs text-muted-foreground"
             >
               Close
-            </button>
+            </Button>
           </div>
           <ul className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
             {SHORTCUT_ROWS.map(({ keys, label }) => (
@@ -651,7 +659,8 @@ export default function RemotePage() {
             Keys work while this page is focused and the TV is connected. Shortcuts are
             paused while typing in a field and while the pairing dialog is open.
           </p>
-        </section>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog
@@ -696,7 +705,7 @@ export default function RemotePage() {
           />
           {error && (
             <p className="flex items-center gap-2 text-sm text-destructive">
-              <CircleHelp className="size-4 shrink-0" aria-hidden="true" />
+              <MdHelpOutline className="size-4 shrink-0" aria-hidden="true" />
               {error}
             </p>
           )}

@@ -1,10 +1,18 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Check, ChevronDown, Radar, Tv } from "lucide-react"
-import { Menu } from "@base-ui/react/menu"
+import { MdCheck, MdKeyboardArrowDown, MdWifiTethering, MdTv } from "react-icons/md"
 
 import { useSavedDevices } from "@/lib/devices-store"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 interface DeviceSwitcherProps {
@@ -23,13 +31,13 @@ export function DeviceSwitcher({ host }: DeviceSwitcherProps) {
   const currentName = current?.name ?? "Android TV"
 
   return (
-    <Menu.Root>
-      <Menu.Trigger
+    <DropdownMenu>
+      <DropdownMenuTrigger
         aria-label="Switch TV"
         title="Switch TV"
         className="flex min-w-0 items-center gap-1 rounded-lg px-1.5 py-1 text-left outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Tv className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <MdTv className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="flex min-w-0 flex-col leading-tight">
           <span className="max-w-[8.5rem] truncate text-[13px] font-medium sm:max-w-[12rem]">
             {currentName}
@@ -38,68 +46,54 @@ export function DeviceSwitcher({ host }: DeviceSwitcherProps) {
             {host}
           </span>
         </span>
-        <ChevronDown
+        <MdKeyboardArrowDown
           className="size-3.5 shrink-0 text-muted-foreground"
           aria-hidden="true"
         />
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner align="start" sideOffset={8} className="z-50">
-          <Menu.Popup
-            className="w-64 origin-[var(--transform-origin)] rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl outline-none transition-[transform,opacity] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
-          >
-            <Menu.Group>
-              <Menu.GroupLabel className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Your TVs
-              </Menu.GroupLabel>
-              {saved.length === 0 ? (
-                <Menu.Item
-                  className="flex cursor-default flex-col rounded-xl px-2.5 py-2 outline-none data-[highlighted]:bg-accent"
-                  aria-disabled
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={8} className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Your TVs</DropdownMenuLabel>
+          {saved.length === 0 ? (
+            <DropdownMenuItem disabled className="flex-col items-start gap-0.5">
+              <span className="font-mono text-xs tabular-nums">{host}</span>
+              <span className="text-[10px] text-muted-foreground">Not saved yet</span>
+            </DropdownMenuItem>
+          ) : (
+            saved.map((device) => {
+              const isCurrent = device.host === host
+              return (
+                <DropdownMenuItem
+                  key={device.host}
+                  onClick={() => router.push(`/remote/${encodeURIComponent(device.host)}`)}
+                  className={cn(
+                    "gap-2.5 py-2",
+                    isCurrent && "bg-accent/50",
+                  )}
                 >
-                  <span className="font-mono text-xs tabular-nums">{host}</span>
-                  <span className="text-[10px] text-muted-foreground">Not saved yet</span>
-                </Menu.Item>
-              ) : (
-                saved.map((device) => {
-                  const isCurrent = device.host === host
-                  return (
-                    <Menu.Item
-                      key={device.host}
-                      onClick={() => router.push(`/remote/${encodeURIComponent(device.host)}`)}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 outline-none transition-colors data-[highlighted]:bg-accent",
-                        isCurrent && "bg-accent/50",
-                      )}
-                    >
-                      <Tv className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-xs font-medium">
-                          {device.name ?? "Android TV"}
-                        </span>
-                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                          {device.host}
-                        </span>
-                      </span>
-                      {isCurrent && (
-                        <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                      )}
-                    </Menu.Item>
-                  )
-                })
-              )}
-            </Menu.Group>
-            <Menu.Separator className="mx-2 my-1 h-px bg-border" />
-            <Menu.Item
-              onClick={() => router.push("/")}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium outline-none transition-colors data-[highlighted]:bg-accent"
-            >
-              <Radar className="size-4 text-muted-foreground" aria-hidden="true" />
-              Scan for another TV…
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+                  <MdTv className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-xs font-medium">
+                      {device.name ?? "Android TV"}
+                    </span>
+                    <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                      {device.host}
+                    </span>
+                  </span>
+                  {isCurrent && (
+                    <MdCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  )}
+                </DropdownMenuItem>
+              )
+            })
+          )}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push("/")}>
+          <MdWifiTethering className="size-4 text-muted-foreground" aria-hidden="true" />
+          Scan for another TV…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

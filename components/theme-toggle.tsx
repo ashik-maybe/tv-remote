@@ -2,16 +2,16 @@
 
 import { useSyncExternalStore } from "react"
 import { setTheme, useThemeMode } from "@/lib/theme-store"
-import { Monitor, Moon, Sun } from "lucide-react"
+import { MdBrightnessAuto, MdDarkMode, MdLightMode } from "react-icons/md"
 import { Button } from "@/components/ui/button"
 
 const order = ["system", "light", "dark"] as const
 type Mode = (typeof order)[number]
 
-const meta: Record<Mode, { label: string; Icon: typeof Monitor }> = {
-  system: { label: "System", Icon: Monitor },
-  light: { label: "Day", Icon: Sun },
-  dark: { label: "Night", Icon: Moon },
+const meta: Record<Mode, { label: string; Icon: typeof MdBrightnessAuto }> = {
+  system: { label: "System", Icon: MdBrightnessAuto },
+  light: { label: "Day", Icon: MdLightMode },
+  dark: { label: "Night", Icon: MdDarkMode },
 }
 
 export function ThemeToggle() {

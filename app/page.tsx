@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Tv, Radar, ChevronDown, ChevronRight, Plus, Trash2, Wifi } from "lucide-react"
+import { MdTv, MdWifiTethering, MdKeyboardArrowDown, MdKeyboardArrowRight, MdAdd, MdDelete, MdWifi } from "react-icons/md"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { getJson } from "@/lib/api"
 import { useSavedDevices, setSavedDevices, type SavedDevice } from "@/lib/devices-store"
@@ -74,7 +75,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-5 p-4 pb-10 sm:max-w-xl">
       <header className="flex items-center gap-3 pt-2">
         <div className="flex size-11 items-center justify-center rounded-xl bg-card ring-1 ring-border">
-          <Tv className="size-6 text-primary" aria-hidden="true" />
+          <MdTv className="size-6 text-primary" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold leading-tight">TV Remote</h1>
@@ -83,10 +84,11 @@ export default function Home() {
         <ThemeToggle />
       </header>
 
-      <section className="rounded-2xl border border-border bg-card p-4">
+      <Card role="region" aria-label="Find your TV">
+        <CardContent>
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Wifi className="size-5 text-primary" aria-hidden="true" />
+            <MdWifi className="size-5 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0 space-y-1">
             <h2 className="text-base font-medium leading-snug">Find your TV</h2>
@@ -102,7 +104,7 @@ export default function Home() {
           onClick={scan}
           disabled={isScanning}
         >
-          <Radar className={`size-5 ${isScanning ? "animate-spin" : ""}`} aria-hidden="true" />
+          <MdWifiTethering className={`size-5 ${isScanning ? "animate-spin" : ""}`} aria-hidden="true" />
           {isScanning ? "Scanning your network…" : "Scan network"}
         </Button>
 
@@ -116,37 +118,41 @@ export default function Home() {
                 <ul className="space-y-2">
                   {newFindings.map((d) => (
                     <li key={d.host}>
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/40 p-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Tv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
-                              {d.name ?? "Android TV"}
-                            </p>
-                            <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
+                      <Card size="sm" className="bg-background/40 py-0 ring-border">
+                        <CardContent className="flex items-center justify-between gap-3 p-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <MdTv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">
+                                {d.name ?? "Android TV"}
+                              </p>
+                              <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
+                            </div>
                           </div>
-                        </div>
-                        <Button size="sm" onClick={() => addAndOpen(d.host, d.name)}>
-                          <Plus className="size-4" />
-                          Add
-                        </Button>
-                      </div>
+                          <Button size="sm" onClick={() => addAndOpen(d.host, d.name)}>
+                            <MdAdd className="size-4" />
+                            Add
+                          </Button>
+                        </CardContent>
+                      </Card>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="rounded-xl border border-dashed border-border p-4 text-center">
-                  <p className="text-sm font-medium">
-                    {scanError ? "Couldn't scan the network" : "No TVs found"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {scanError ??
-                      "Make sure the TV is on and on the same Wi-Fi/subnet, and try again."}
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={scan}>
-                    Try again
-                  </Button>
-                </div>
+                <Card className="border-dashed border-border bg-transparent py-4 ring-0">
+                  <CardContent className="p-0 text-center">
+                    <p className="text-sm font-medium">
+                      {scanError ? "Couldn't scan the network" : "No TVs found"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {scanError ??
+                        "Make sure the TV is on and on the same Wi-Fi/subnet, and try again."}
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-3" onClick={scan}>
+                      Try again
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
             </>
           )}
@@ -156,9 +162,9 @@ export default function Home() {
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Can&apos;t find it? Enter the IP address
             {manualOpen ? (
-              <ChevronDown className="size-4" aria-hidden="true" />
+              <MdKeyboardArrowDown className="size-4" aria-hidden="true" />
             ) : (
-              <ChevronRight className="size-4" aria-hidden="true" />
+              <MdKeyboardArrowRight className="size-4" aria-hidden="true" />
             )}
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -184,7 +190,8 @@ export default function Home() {
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </section>
+        </CardContent>
+      </Card>
 
       {saved.length > 0 && (
         <section className="space-y-2">
@@ -194,30 +201,32 @@ export default function Home() {
           <ul className="space-y-2">
             {saved.map((d) => (
               <li key={d.host}>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <Tv className="size-5 text-primary" aria-hidden="true" />
+                <Card size="sm" className="py-0 ring-border">
+                  <CardContent className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <MdTv className="size-5 text-primary" aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{d.name ?? "Android TV"}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{d.name ?? "Android TV"}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Remove ${d.host}`}
+                        onClick={() => remove(d.host)}
+                      >
+                        <MdDelete className="size-4" aria-hidden="true" />
+                      </Button>
+                      <Button onClick={() => router.push(`/remote/${encodeURIComponent(d.host)}`)}>
+                        Open
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Remove ${d.host}`}
-                      onClick={() => remove(d.host)}
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </Button>
-                    <Button onClick={() => router.push(`/remote/${encodeURIComponent(d.host)}`)}>
-                      Open
-                    </Button>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </li>
             ))}
           </ul>

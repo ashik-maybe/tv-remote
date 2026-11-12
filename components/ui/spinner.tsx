@@ -1,9 +1,9 @@
 import { cn } from "cn"
-import { Loader2Icon } from "lucide-react"
+import { MdSync } from "react-icons/md"
 
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
   return (
-    <Loader2Icon data-slot="spinner" role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <MdSync data-slot="spinner" role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
   )
 }
 
