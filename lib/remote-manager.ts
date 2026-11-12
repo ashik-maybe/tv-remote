@@ -9,7 +9,6 @@ import {
 import type {
   RemoteConnectionState,
   RemoteSnapshot,
-  StoredCert,
   StoredCerts,
   VolumeInfo,
 } from "./types"
