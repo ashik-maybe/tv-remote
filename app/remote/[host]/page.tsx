@@ -166,7 +166,7 @@ export default function RemotePage() {
   }, [sendPower])
 
   const submitPairCode = async () => {
-    const finalCode = code.trim()
+    const finalCode = code.trim().toUpperCase()
     if (finalCode.length !== 6) return
     setSubmitting(true)
     setError(null)
@@ -446,7 +446,7 @@ export default function RemotePage() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
           <p className="text-sm">
             <span className="font-medium">TV is ready to pair.</span>{" "}
-            <span className="text-muted-foreground">It&apos;s showing a 6-digit code.</span>
+            <span className="text-muted-foreground">It&apos;s showing a 6-character code.</span>
           </p>
           <Button size="sm" onClick={() => setManualOpen(true)}>
             Enter code
@@ -589,18 +589,20 @@ export default function RemotePage() {
           <DialogHeader>
             <DialogTitle>Pair with your TV</DialogTitle>
             <DialogDescription>
-              Your TV is showing a 6-digit code on screen. Type it below, then choose
-              Pair TV — or press Enter.
+              Your TV is showing a 6-character code on screen. Type it below, then
+              choose Pair TV — or press Enter. Numbers and letters A–F both work.
             </DialogDescription>
           </DialogHeader>
           <Input
             ref={codeInputRef}
-            inputMode="numeric"
-            pattern="[0-9]*"
+            inputMode="text"
+            pattern="[0-9A-Fa-f]*"
             maxLength={6}
-            placeholder="123456"
+            placeholder="3F8A12"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) =>
+              setCode(e.target.value.toUpperCase().replace(/[^0-9A-F]/g, "").slice(0, 6))
+            }
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault()
@@ -608,7 +610,9 @@ export default function RemotePage() {
               }
             }}
             className="h-16 text-center font-mono text-3xl tracking-[0.4em] tabular-nums"
-            aria-label="6-digit pairing code"
+            aria-label="6-character pairing code"
+            autoCapitalize="characters"
+            autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
           />

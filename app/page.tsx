@@ -255,7 +255,7 @@ export default function Home() {
       )}
 
       <p className="mt-auto px-1 pt-4 text-center text-[11px] leading-relaxed text-muted-foreground">
-        Works on Android TV &amp; Google TV. The TV shows a 6-digit code on first pair.
+        Works on Android TV &amp; Google TV. The TV shows a 6-character code (digits, sometimes letters A-F) on first pair.
         <br />
         Theme follows your system by default — tap the theme button up top to change it.
       </p>

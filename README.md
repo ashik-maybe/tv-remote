@@ -14,7 +14,7 @@ a Node-backed route handler talks to the TV using Google's official
 - The Next.js server holds one long-lived mutual-TLS connection per TV
   (`@kud/androidtv-remote`). Browsers can't open raw TLS sockets, so the
   control plane lives in Route Handlers (`runtime = "nodejs"`).
-- Pairing is one-time: the TV shows a 6-digit PIN, you type it in the web
+- Pairing is one-time: the TV shows a 6-character code (0-9, sometimes A-F), you type it in the web
   UI, and the issued certificate is persisted to `data/remotes.json`
   (gitignored). Reconnects reuse the stored cert — no PIN.
 - Live state (power, volume, foreground app) is pushed from the TV and
@@ -67,7 +67,7 @@ is open):
 Hover any button on the remote screen to see its key. The keyboard icon
 in the header toggles an on-screen shortcut card.
 
-Pairing: when the TV shows a 6-digit code, type it and press **Enter** or
+Pairing: when the TV shows its 6-character code (0-9 or A-F), type it and press **Enter** or
 the **Pair TV** button. If the connection fails first, the page still
 offers an **Enter code** button so the code field is always reachable.
 
@@ -108,7 +108,7 @@ For "add to home screen" on Android, the page must be served over HTTPS
 |---|---|---|---|
 | `/api/pair/start` | POST | `{host}` | connect / start pairing |
 | `/api/pair/status` | GET | `?host=` | state + power + volume + currentApp |
-| `/api/pair/code` | POST | `{host, code}` | submit 6-digit PIN |
+| `/api/pair/code` | POST | `{host, code}` | submit 6-character code (0-9 A-F) |
 | `/api/remote/key` | POST | `{host, keyCode \| key, direction?}` | send key / named `RemoteKeyCode` |
 | `/api/remote/power` | POST | `{host}` | toggle power |
 | `/api/remote/text` | POST | `{host, text}` | IME text injection |

@@ -15,6 +15,13 @@ export async function POST(request: NextRequest) {
   if (!host || !code) {
     return NextResponse.json({ error: "host and code are required" }, { status: 400 })
   }
-  const ok = submitCode(host, code)
+  const normalizedCode = code.trim().toUpperCase()
+  if (!/^[0-9A-F]{6}$/.test(normalizedCode)) {
+    return NextResponse.json(
+      { error: "code must be exactly 6 characters of 0-9 or A-F" },
+      { status: 400 },
+    )
+  }
+  const ok = submitCode(host, normalizedCode)
   return NextResponse.json({ ...snapshot(host), submitted: ok })
 }
