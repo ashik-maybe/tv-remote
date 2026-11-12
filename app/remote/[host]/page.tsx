@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp } from "lucide-react"
+import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,7 +46,10 @@ export default function RemotePage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [text, setText] = useState("")
+  const [pairDismissed, setPairDismissed] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const codeInputRef = useRef<HTMLInputElement | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -54,6 +57,7 @@ export default function RemotePage() {
         `/api/pair/status?host=${encodeURIComponent(host)}`,
       )
       setSnap(s)
+      if (s.state !== "pairing") setPairDismissed(false)
     } catch (e) {
       toast.error("Couldn't reach the TV", {
         description: e instanceof Error ? e.message : String(e),
@@ -84,6 +88,19 @@ export default function RemotePage() {
     }
   }, [host, refresh])
 
+  const reconnect = useCallback(async () => {
+    setPairDismissed(false)
+    setManualOpen(false)
+    try {
+      const s = await postJson<RemoteSnapshot>("/api/pair/start", { host })
+      setSnap(s)
+    } catch (e) {
+      toast.error("Couldn't reach the TV", {
+        description: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }, [host])
+
   const sendKey = async (key: string) => {
     if (key === "KEYCODE_DPAD_CENTER") buzz(10)
     try {
@@ -110,8 +127,8 @@ export default function RemotePage() {
     }
   }
 
-  const submitPairCode = async (value?: string) => {
-    const finalCode = (value ?? code).trim()
+  const submitPairCode = async () => {
+    const finalCode = code.trim()
     if (finalCode.length !== 6) return
     setSubmitting(true)
     setError(null)
@@ -122,10 +139,15 @@ export default function RemotePage() {
       })
       setSnap(s)
       setCode("")
+      setManualOpen(false)
+      setPairDismissed(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      const message = e instanceof Error ? e.message : String(e)
+      setError(message)
+      setCode("")
+      codeInputRef.current?.focus()
       toast.error("Pairing code rejected", {
-        description: e instanceof Error ? e.message : String(e),
+        description: message,
       })
     } finally {
       setSubmitting(false)
@@ -161,6 +183,13 @@ export default function RemotePage() {
   const state = snap?.state ?? "connecting"
   const isReady = state === "ready"
   const isPairing = state === "pairing"
+  const showPairDialog = (isPairing && !pairDismissed) || manualOpen
+
+  useEffect(() => {
+    if (!showPairDialog) return
+    const timer = setTimeout(() => codeInputRef.current?.focus(), 80)
+    return () => clearTimeout(timer)
+  }, [showPairDialog])
   const statusLabel =
     state === "ready" ? "Connected" : state === "pairing" ? "Awaiting code" : state === "error" ? "Error" : "Connecting"
   const statusDot =
@@ -210,6 +239,48 @@ export default function RemotePage() {
           </Button>
         </CardContent>
       </Card>
+
+      {state === "error" && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-destructive">Couldn&apos;t reach the TV</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Check the TV is on and on the same Wi-Fi network, then try again — or, if
+              the TV is showing a code, enter it.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" size="sm" onClick={reconnect}>
+              <RotateCcw className="size-4" aria-hidden="true" />
+              Try again
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setManualOpen(true)
+                setPairDismissed(false)
+              }}
+            >
+              Enter code
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isPairing && pairDismissed && !manualOpen && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm">
+            <span className="font-medium">TV is ready to pair.</span>{" "}
+            <span className="text-muted-foreground">It&apos;s showing a 6-digit code.</span>
+          </p>
+          <Button size="sm" onClick={() => setManualOpen(true)}>
+            Enter code
+          </Button>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card p-3">
         <div className="grid grid-cols-3 gap-2">
@@ -295,29 +366,41 @@ export default function RemotePage() {
         ))}
       </div>
 
-      <Dialog open={isPairing} onOpenChange={() => {}}>
+      <Dialog
+        open={showPairDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPairDismissed(true)
+            setManualOpen(false)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pair with your TV</DialogTitle>
             <DialogDescription>
-              Your TV is showing a 6-digit code. Type it here — the connection starts
-              automatically.
+              Your TV is showing a 6-digit code on screen. Type it below, then choose
+              Pair TV — or press Enter.
             </DialogDescription>
           </DialogHeader>
           <Input
+            ref={codeInputRef}
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={6}
             placeholder="123456"
             value={code}
-            onChange={(e) => {
-              const next = e.target.value.replace(/\D/g, "").slice(0, 6)
-              setCode(next)
-              if (next.length === 6) submitPairCode(next)
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                void submitPairCode()
+              }
             }}
             className="h-16 text-center font-mono text-3xl tracking-[0.4em] tabular-nums"
-            autoFocus
             aria-label="6-digit pairing code"
+            autoComplete="off"
+            spellCheck={false}
           />
           {error && (
             <p className="flex items-center gap-2 text-sm text-destructive">
@@ -326,7 +409,21 @@ export default function RemotePage() {
             </p>
           )}
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button onClick={() => submitPairCode()} disabled={code.length !== 6 || submitting} className="w-full sm:w-auto">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPairDismissed(true)
+                setManualOpen(false)
+              }}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void submitPairCode()}
+              disabled={code.length !== 6 || submitting}
+              className="w-full sm:w-auto"
+            >
               {submitting ? "Pairing…" : "Pair TV"}
             </Button>
           </DialogFooter>
