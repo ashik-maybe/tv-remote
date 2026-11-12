@@ -105,7 +105,7 @@ async function probeSubnet(hosts: string[]): Promise<Set<string>> {
       if (i >= hosts.length) return
       const host = hosts[i]
       for (const port of PROBE_PORTS) {
-        // eslint-disable-next-line no-await-in-loop
+        // Sequential per host; concurrency is across hosts
         if (await tcpProbe(host, port, PROBE_TIMEOUT_MS)) {
           open.add(host)
           break
