@@ -3,7 +3,6 @@
 import { MdDarkMode, MdLightMode } from "react-icons/md"
 import { setTheme, useThemeMode } from "@/lib/theme-store"
 import { Button } from "@/components/ui/button"
-import { KeyHint } from "@/components/key-hint"
 
 export function ThemeToggle() {
   const theme = useThemeMode()
@@ -18,7 +17,7 @@ export function ThemeToggle() {
       aria-pressed={isDark}
       aria-label={`Theme: ${label}. Tap to switch.`}
       title={`Theme: ${label}`}
-      className="relative shrink-0 gap-1.5 text-muted-foreground hover:text-foreground [@media(hover:hover)_and_(pointer:fine)]:pr-7"
+      className="relative shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
     >
       {isDark ? (
         <MdDarkMode className="size-4" aria-hidden="true" />
@@ -26,7 +25,6 @@ export function ThemeToggle() {
         <MdLightMode className="size-4" aria-hidden="true" />
       )}
       <span className="text-xs font-medium">{label}</span>
-      <KeyHint label="D" />
     </Button>
   )
 }
