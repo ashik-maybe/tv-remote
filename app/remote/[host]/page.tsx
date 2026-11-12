@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw, Keyboard } from "lucide-react"
+import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Rewind, FastForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw, Keyboard, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DeviceSwitcher } from "@/components/device-switcher"
+import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
@@ -18,6 +20,10 @@ import {
 } from "@/components/ui/dialog"
 import { postJson, getJson } from "@/lib/api"
 import type { RemoteSnapshot } from "@/lib/api"
+
+/** Shared press feedback: every remote button depresses on tap. */
+const press =
+  "transition-transform duration-100 ease-out active:scale-95 motion-reduce:transition-none"
 
 function buzz(ms = 8) {
   try {
@@ -39,12 +45,27 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
-const APP_SHORTCUTS: { label: string; link: string }[] = [
-  { label: "YouTube", link: "https://www.youtube.com" },
-  { label: "Netflix", link: "https://www.netflix.com" },
-  { label: "Prime Video", link: "https://www.primevideo.com" },
-  { label: "Disney+", link: "https://www.disneyplus.com" },
+interface AppTile {
+  name: string
+  letter: string
+  link: string
+  /** Brand color used for the letter monogram disc. */
+  brand: string
+}
+
+const APP_TILES: AppTile[] = [
+  { name: "YouTube", letter: "Y", link: "https://www.youtube.com", brand: "#FF0033" },
+  { name: "Netflix", letter: "N", link: "https://www.netflix.com", brand: "#E50914" },
+  { name: "Prime Video", letter: "P", link: "https://www.primevideo.com", brand: "#00A8E1" },
+  { name: "Disney+", letter: "D", link: "https://www.disneyplus.com", brand: "#113CCF" },
+  { name: "Spotify", letter: "S", link: "https://www.spotify.com", brand: "#1DB954" },
+  { name: "Twitch", letter: "T", link: "https://www.twitch.tv", brand: "#9146FF" },
+  { name: "Hulu", letter: "H", link: "https://www.hulu.com", brand: "#1CE783" },
+  { name: "Max", letter: "M", link: "https://www.max.com", brand: "#002BE7" },
 ]
+
+/** Hotkeys 1–4 launch the first four tiles. */
+const APP_SHORTCUTS = APP_TILES.slice(0, 4)
 
 const SHORTCUT_ROWS: { keys: string; label: string }[] = [
   { keys: "← ↑ ↓ →", label: "D-pad" },
@@ -74,6 +95,7 @@ export default function RemotePage() {
   const [pairDismissed, setPairDismissed] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [errorDismissed, setErrorDismissed] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const codeInputRef = useRef<HTMLInputElement | null>(null)
   const sendKeyRef = useRef<(key: string) => Promise<void>>(() => Promise.resolve())
@@ -88,6 +110,7 @@ export default function RemotePage() {
       )
       setSnap(s)
       if (s.state !== "pairing") setPairDismissed(false)
+      if (s.state !== "error") setErrorDismissed(false)
     } catch (e) {
       toast.error("Couldn't reach the TV", {
         description: e instanceof Error ? e.message : String(e),
@@ -121,6 +144,7 @@ export default function RemotePage() {
   const reconnect = useCallback(async () => {
     setPairDismissed(false)
     setManualOpen(false)
+    setErrorDismissed(false)
     try {
       const s = await postJson<RemoteSnapshot>("/api/pair/start", { host })
       setSnap(s)
@@ -222,6 +246,16 @@ export default function RemotePage() {
   const isReady = state === "ready"
   const isPairing = state === "pairing"
   const showPairDialog = (isPairing && !pairDismissed) || manualOpen
+
+  // Fresh TV means fresh banner state — adjusted during render (the
+  // recommended pattern), not in an effect.
+  const [prevHost, setPrevHost] = useState(host)
+  if (prevHost !== host) {
+    setPrevHost(host)
+    setErrorDismissed(false)
+    setPairDismissed(false)
+    setManualOpen(false)
+  }
 
   useEffect(() => {
     if (!showPairDialog) return
@@ -358,18 +392,17 @@ export default function RemotePage() {
     state === "ready" ? "bg-emerald-400" : state === "pairing" ? "bg-amber-400" : state === "error" ? "bg-red-400" : "bg-zinc-400"
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg">
-      <header className="flex items-center gap-2 pt-1">
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg sm:gap-5 sm:p-5 lg:max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-5 lg:gap-y-4 xl:max-w-5xl">
+      <header className="flex items-center gap-1.5 pt-1 sm:gap-2 lg:col-span-2">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={() => router.push("/")}>
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Button>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-mono text-sm tabular-nums">{host}</span>
-          <span className="text-[11px] text-muted-foreground">Android TV</span>
+        <div className="flex min-w-0 flex-1 items-center">
+          <DeviceSwitcher host={host} />
         </div>
-        <span className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          <span className={`size-1.5 rounded-full ${statusDot}`} aria-hidden="true" />
-          {statusLabel}
+        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          <span className={`size-1.5 shrink-0 rounded-full ${statusDot}`} aria-hidden="true" />
+          <span className="truncate">{statusLabel}</span>
         </span>
         <Button
           variant="ghost"
@@ -384,7 +417,7 @@ export default function RemotePage() {
         <ThemeToggle />
       </header>
 
-      <Card>
+      <Card className="lg:col-span-2">
         <CardContent className="flex items-center justify-between gap-3 p-4">
           <div className="flex min-w-0 items-center gap-3">
             <Tv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -402,7 +435,7 @@ export default function RemotePage() {
           <Button
             variant="outline"
             size="icon"
-            className="shrink-0"
+            className={cn("shrink-0", press)}
             onClick={sendPower}
             disabled={!isReady}
             aria-label="Toggle power" title="Power (P)"
@@ -412,10 +445,10 @@ export default function RemotePage() {
         </CardContent>
       </Card>
 
-      {state === "error" && (
+      {state === "error" && !errorDismissed && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 lg:col-span-2"
         >
           <div className="min-w-0">
             <p className="text-sm font-medium text-destructive">Couldn&apos;t reach the TV</p>
@@ -424,7 +457,7 @@ export default function RemotePage() {
               the TV is showing a code, enter it.
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button variant="outline" size="sm" onClick={reconnect}>
               <RotateCcw className="size-4" aria-hidden="true" />
               Try again
@@ -438,12 +471,21 @@ export default function RemotePage() {
             >
               Enter code
             </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Dismiss"
+              title="Dismiss"
+              onClick={() => setErrorDismissed(true)}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </Button>
           </div>
         </div>
       )}
 
       {isPairing && pairDismissed && !manualOpen && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 lg:col-span-2">
           <p className="text-sm">
             <span className="font-medium">TV is ready to pair.</span>{" "}
             <span className="text-muted-foreground">It&apos;s showing a 6-character code.</span>
@@ -454,95 +496,131 @@ export default function RemotePage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="grid grid-cols-3 gap-2">
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home (H)">
-            <Home className="size-6" aria-hidden="true" />
+      {/* Keypad — left column on lg, top on small screens */}
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home (H)">
+            <Home className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up (↑)">
-            <ChevronUp className="size-7" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up (↑)">
+            <ChevronUp className="size-8" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back (Backspace · Esc)">
-            <CornerUpLeft className="size-6" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back (Backspace · Esc)">
+            <CornerUpLeft className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left (←)">
-            <ChevronLeft className="size-7" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left (←)">
+            <ChevronLeft className="size-8" aria-hidden="true" />
           </Button>
-          <Button className="h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80" onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK (Enter)">
-            <span className="text-base font-bold">OK</span>
+          <Button className={cn("h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK (Enter)">
+            <span className="text-lg font-bold sm:text-xl">OK</span>
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right (→)">
-            <ChevronRight className="size-7" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right (→)">
+            <ChevronRight className="size-8" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu (C)">
-            <Menu className="size-6" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu (C)">
+            <Menu className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down (↓)">
-            <ChevronDown className="size-7" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down (↓)">
+            <ChevronDown className="size-8" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
-            <span className="flex items-center gap-0.5">
-              <Play className="size-5" aria-hidden="true" />
-              <Pause className="size-5" aria-hidden="true" />
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
+            <span className="flex items-center gap-1">
+              <Play className="size-6" aria-hidden="true" />
+              <Pause className="size-6" aria-hidden="true" />
             </span>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous ([)">
-          <SkipBack className="size-5" aria-hidden="true" />
-        </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next (])">
-          <SkipForward className="size-5" aria-hidden="true" />
-        </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down (-)">
-          <Volume1 className="size-5" aria-hidden="true" />
-        </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up (+)">
-          <Volume2 className="size-5" aria-hidden="true" />
-        </Button>
-      </div>
-
-      <Button variant="outline" className="h-12 w-full" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} title="Mute (M)">
-        <VolumeX className="size-5" aria-hidden="true" />
-        Mute
-      </Button>
-
-      <div className="flex gap-2">
-        <Input
-          placeholder="Type on TV…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
-          disabled={!isReady}
-          className="h-12"
-          aria-label="Text to type on TV"
-        />
-        <Button className="h-12" onClick={sendTextNow} disabled={!isReady || !text.trim()}>
-          Send
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        {APP_SHORTCUTS.map((a, index) => (
-          <Button
-            key={a.label}
-            variant="secondary"
-            className="h-12 text-xs"
-            onClick={() => launchApp(a.link)}
-            disabled={!isReady}
-            title={`${a.label} — press ${index + 1}`}
-          >
-            {a.label}
+      {/* Right column — transport, volume, text, apps */}
+      <div className="flex flex-col gap-3 sm:gap-4">
+        {/* Media transport, grouped like a player */}
+        <div className="grid grid-cols-5 gap-2 rounded-2xl border border-border bg-card p-3 sm:gap-3 sm:p-4 lg:gap-4">
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_REWIND")} disabled={!isReady} aria-label="Rewind" title="Rewind">
+            <Rewind className="size-6" aria-hidden="true" />
           </Button>
-        ))}
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous ([)">
+            <SkipBack className="size-6" aria-hidden="true" />
+          </Button>
+          <Button className={cn("h-14 bg-primary text-primary-foreground hover:bg-primary/80 sm:h-16 lg:h-20", press)} onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
+            <span className="flex items-center gap-1">
+              <Play className="size-6 sm:size-7" aria-hidden="true" />
+              <Pause className="size-6 sm:size-7" aria-hidden="true" />
+            </span>
+          </Button>
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next (])">
+            <SkipForward className="size-6" aria-hidden="true" />
+          </Button>
+          <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_FAST_FORWARD")} disabled={!isReady} aria-label="Fast forward" title="Fast forward">
+            <FastForward className="size-6" aria-hidden="true" />
+          </Button>
+        </div>
+
+        {/* Volume — bottom of the column, thumb-reachable */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down (-)">
+            <Volume1 className="size-7" aria-hidden="true" />
+          </Button>
+          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute (M)">
+            <span className="flex items-center gap-2">
+              <VolumeX className="size-6" aria-hidden="true" />
+              <span className="text-sm font-medium">Mute</span>
+            </span>
+          </Button>
+          <Button className={cn("h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up (+)">
+            <Volume2 className="size-7" aria-hidden="true" />
+          </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            placeholder="Type on TV…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
+            disabled={!isReady}
+            className="h-12 sm:h-14"
+            aria-label="Text to type on TV"
+          />
+          <Button className={cn("h-12 sm:h-14", press)} onClick={sendTextNow} disabled={!isReady || !text.trim()}>
+            Send
+          </Button>
+        </div>
+
+        {/* App launcher — letter monograms, brand colors */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          {APP_TILES.map((app, index) => (
+            <button
+              key={app.name}
+              type="button"
+              className={cn(
+                "flex h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-1 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 sm:h-20",
+                press,
+              )}
+              onClick={() => launchApp(app.link)}
+              disabled={!isReady}
+              title={index < 4 ? `${app.name} — press ${index + 1}` : app.name}
+              aria-label={`Launch ${app.name}`}
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-7 items-center justify-center rounded-full text-[13px] font-bold text-white sm:size-8 sm:text-sm"
+                style={{ backgroundColor: app.brand }}
+              >
+                {app.letter}
+              </span>
+              <span className="w-full truncate text-center text-[10px] font-medium leading-none sm:text-[11px]">
+                {app.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {shortcutsOpen && (
         <section
           aria-label="Keyboard shortcuts"
-          className="rounded-2xl border border-border bg-card p-4"
+          className="rounded-2xl border border-border bg-card p-4 lg:col-span-2"
         >
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

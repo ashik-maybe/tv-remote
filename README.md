@@ -67,6 +67,25 @@ is open):
 Hover any button on the remote screen to see its key. The keyboard icon
 in the header toggles an on-screen shortcut card.
 
+## Remote screen
+
+- **Responsive layout** — phones get the stacked thumb-zone layout
+  (volume at the bottom, near your thumb); tablets and large screens
+  switch to a two-column grid (keypad left, media transport / volume /
+  text / apps right) with larger, ≥64 px targets.
+- **Media transport** — grouped Rewind · Previous · Play/Pause ·
+  Next · Fast Forward row.
+- **Haptics** — a short vibration on every key press (best-effort;
+  silently no-ops on devices without the Vibration API).
+- **Press feedback** — every button visually depresses on tap.
+- **App launcher** — letter-monogram tiles (YouTube, Netflix, Prime
+  Video, Disney+, Spotify, Twitch, Hulu, Max); the first four are
+  bound to hotkeys `1`–`4`.
+- **Device switcher** — the header menu lists your saved TVs for
+  one-tap switching without returning home.
+- **Accessibility** — visible focus rings, labels on every control,
+  and `prefers-reduced-motion` is honoured.
+
 Pairing: when the TV shows its 6-character code (0-9 or A-F), type it and press **Enter** or
 the **Pair TV** button. If the connection fails first, the page still
 offers an **Enter code** button so the code field is always reachable.

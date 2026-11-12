@@ -1,3 +1,4 @@
+import type { Viewport } from "next"
 import { Geist_Mono, Outfit } from "next/font/google"
 
 import "./globals.css"
@@ -10,6 +11,14 @@ const outfit = Outfit({subsets:['latin'],variable:'--font-sans'})
 export const metadata = {
   title: "TV Remote",
   description: "Find and control your Android TV / Google TV on your home network.",
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    // Follow the same tokens as globals.css (--background).
+    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#12141a" },
+  ],
 }
 
 const fontMono = Geist_Mono({
