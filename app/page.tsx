@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { MdTv, MdWifiTethering, MdKeyboardArrowDown, MdKeyboardArrowRight, MdAdd, MdDelete, MdWifi } from "react-icons/md"
+import { MdTv, MdWifiTethering, MdKeyboardArrowDown, MdKeyboardArrowRight, MdAdd, MdDelete, MdWifi, MdEdit } from "react-icons/md"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,8 @@ export default function Home() {
   const [hasScanned, setHasScanned] = useState(false)
   const [discovered, setDiscovered] = useState<DiscoveredDevice[]>([])
   const [scanError, setScanError] = useState<string | null>(null)
+  const [editingHost, setEditingHost] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState("")
 
   const persist = useCallback((next: SavedDevice[]) => {
     setSavedDevices(next)
@@ -48,6 +50,25 @@ export default function Home() {
   const remove = useCallback(
     (host: string) => persist(saved.filter((d) => d.host !== host)),
     [persist, saved],
+  )
+
+  const startRename = useCallback((d: SavedDevice) => {
+    setEditingHost(d.host)
+    setDraftName(d.name ?? "")
+  }, [])
+
+  const cancelRename = useCallback(() => setEditingHost(null), [])
+
+  const saveRename = useCallback(
+    (host: string) => {
+      const trimmed = draftName.trim()
+      persist(saved.map((d) => (d.host === host ? { ...d, name: trimmed || undefined } : d)))
+      setEditingHost(null)
+      toast.success("Name updated", {
+        description: trimmed ? `Saved as “${trimmed}”` : "Back to the default name",
+      })
+    },
+    [draftName, persist, saved],
   )
 
   const scan = useCallback(async () => {
@@ -199,31 +220,69 @@ export default function Home() {
             {saved.map((d) => (
               <li key={d.host}>
                 <Card size="sm" className="py-0 ring-border">
-                  <CardContent className="flex items-center justify-between gap-3 p-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <MdTv className="size-5 text-primary" aria-hidden="true" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{d.name ?? "Android TV"}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 text-muted-foreground hover:text-foreground"
-                        aria-label={`Remove ${d.host}`}
-                        onClick={() => remove(d.host)}
-                      >
-                        <MdDelete className="size-4" aria-hidden="true" />
-                        Remove
-                      </Button>
-                      <Button onClick={() => router.push(`/remote/${encodeURIComponent(d.host)}`)}>
-                        Open
-                      </Button>
-                    </div>
+                  <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
+                    {editingHost === d.host ? (
+                      <>
+                        <Input
+                          autoFocus
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveRename(d.host)
+                            if (e.key === "Escape") cancelRename()
+                          }}
+                          placeholder="Android TV"
+                          aria-label={`Name for ${d.host}`}
+                          autoComplete="off"
+                          className="h-11 min-w-0 flex-1"
+                        />
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button size="sm" className="h-11" onClick={() => saveRename(d.host)}>
+                            Save
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-11" onClick={cancelRename}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <MdTv className="size-5 text-primary" aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{d.name ?? "Android TV"}</p>
+                            <p className="font-mono text-xs text-muted-foreground">{d.host}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-muted-foreground hover:text-foreground"
+                            aria-label={`Rename ${d.host}`}
+                            onClick={() => startRename(d)}
+                          >
+                            <MdEdit className="size-4" aria-hidden="true" />
+                            Rename
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-muted-foreground hover:text-foreground"
+                            aria-label={`Remove ${d.host}`}
+                            onClick={() => remove(d.host)}
+                          >
+                            <MdDelete className="size-4" aria-hidden="true" />
+                            Remove
+                          </Button>
+                          <Button onClick={() => router.push(`/remote/${encodeURIComponent(d.host)}`)}>
+                            Open
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </li>

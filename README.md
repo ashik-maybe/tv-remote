@@ -102,6 +102,10 @@ fine pointer) and are hidden entirely on touch screens.
   field the TV has focused.
 - **Device switcher** — the header menu lists your saved TVs for
   one-tap switching without returning home.
+- **Rename** — each saved TV on the home page can be renamed in place:
+  the row swaps into an inline editor (Enter saves, Escape cancels, a
+  blank name restores the default). Names are stored on this device —
+  they don't affect discovery or pairing.
 - **Accessibility** — visible focus rings, labels on every control,
   and `prefers-reduced-motion` is honoured.
 
