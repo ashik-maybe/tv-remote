@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeMute, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdHelpOutline, MdRefresh, MdClose } from "react-icons/md"
+import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeOff, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdChevronRight, MdHelpOutline, MdRefresh, MdClose } from "react-icons/md"
 import { KeyHint } from "@/components/key-hint"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -48,20 +48,6 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
-interface AppTile {
-  name: string
-  letter: string
-  link: string
-  /** Brand color used for the letter monogram disc. */
-  brand: string
-}
-
-const APP_TILES: AppTile[] = [
-  { name: "YouTube", letter: "Y", link: "https://www.youtube.com", brand: "#FF0033" },
-  { name: "Netflix", letter: "N", link: "https://www.netflix.com", brand: "#E50914" },
-  { name: "Prime Video", letter: "P", link: "https://www.primevideo.com", brand: "#00A8E1" },
-  { name: "Disney+", letter: "D", link: "https://www.disneyplus.com", brand: "#113CCF" },
-]
 
 export default function RemotePage() {
   const params = useParams<{ host: string }>()
@@ -73,6 +59,7 @@ export default function RemotePage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [text, setText] = useState("")
+
   const [pairDismissed, setPairDismissed] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
   const [errorDismissed, setErrorDismissed] = useState(false)
@@ -211,18 +198,6 @@ export default function RemotePage() {
     }
   }
 
-  const launchApp = useCallback(async (link: string) => {
-    buzz(6)
-    try {
-      await postJson("/api/remote/app", { host, link })
-      await refresh()
-    } catch (e) {
-      toast.error("Couldn't launch app", {
-        description: e instanceof Error ? e.message : String(e),
-      })
-    }
-  }, [host, refresh])
-
   const state = snap?.state ?? "connecting"
   const isReady = state === "ready"
   const isPairing = state === "pairing"
@@ -252,7 +227,7 @@ export default function RemotePage() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.defaultPrevented) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (remoteStateRef.current.pairOpen) return // pairing dialog owns the keyboard
+      if (remoteStateRef.current.pairOpen) return // open dialog owns the keyboard
       if (isTypingTarget(event.target)) return
 
       const targetIsButton =
@@ -335,14 +310,6 @@ export default function RemotePage() {
         case "]":
           action = () => sendKey("KEYCODE_MEDIA_NEXT")
           break
-        case "1":
-        case "2":
-        case "3":
-        case "4": {
-          const app = APP_TILES[Number(key) - 1]
-          if (app) action = () => launchApp(app.link)
-          break
-        }
         default:
           return
       }
@@ -365,7 +332,7 @@ export default function RemotePage() {
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [sendKey, sendPower, launchApp])
+  }, [sendKey, sendPower])
 
   const statusLabel =
     state === "ready" ? "Connected" : state === "pairing" ? "Awaiting code" : state === "error" ? "Error" : "Connecting"
@@ -373,8 +340,8 @@ export default function RemotePage() {
     state === "ready" ? "bg-emerald-400" : state === "pairing" ? "bg-amber-400" : state === "error" ? "bg-red-400" : "bg-zinc-400"
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-4 p-4 sm:max-w-lg sm:gap-5 sm:p-5 lg:max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-5 lg:gap-y-4 xl:max-w-5xl">
-      <header className="flex items-center gap-1.5 pt-1 sm:gap-2 lg:col-span-2">
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-4 p-4 py-6 sm:max-w-lg sm:gap-5 sm:p-6 lg:max-w-3xl lg:gap-4 lg:py-6 xl:max-w-4xl">
+      <header className="flex items-center gap-1.5 pt-1 sm:gap-2">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={() => router.push("/")}>
           <MdArrowBack className="size-5" aria-hidden="true" />
         </Button>
@@ -396,7 +363,7 @@ export default function RemotePage() {
 
       <section
         aria-label="Current app and power"
-        className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 lg:col-span-2"
+        className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
       >
           <div className="flex min-w-0 items-center gap-3">
             <MdTv className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -427,7 +394,7 @@ export default function RemotePage() {
       {state === "error" && !errorDismissed && (
         <Alert
           variant="destructive"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-destructive/40 bg-destructive/10 px-4 py-4 lg:col-span-2"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-destructive/40 bg-destructive/10 px-4 py-4"
         >
           <div className="min-w-0">
             <AlertTitle className="text-sm">Couldn&apos;t reach the TV</AlertTitle>
@@ -465,7 +432,7 @@ export default function RemotePage() {
 
       {isPairing && pairDismissed && !manualOpen && (
         <Alert
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-amber-500/40 bg-amber-500/10 px-4 py-4 lg:col-span-2"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-amber-500/40 bg-amber-500/10 px-4 py-4"
         >
           <div className="min-w-0">
             <AlertTitle className="text-sm">TV is ready to pair.</AlertTitle>
@@ -480,9 +447,9 @@ export default function RemotePage() {
       )}
 
       {/* Remote surface — nav band + connected D-pad */}
-      <section aria-label="Remote" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:gap-4 sm:p-4">
+      <section aria-label="Remote" className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 sm:gap-4 sm:p-4 lg:grid-cols-2 lg:gap-4 lg:p-5">
         {/* Nav band */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:col-span-2 lg:gap-4">
           <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back">
             <MdArrowBack className="size-7" aria-hidden="true" />
             <KeyHint label="Esc" />
@@ -495,9 +462,37 @@ export default function RemotePage() {
             <MdMenu className="size-7" aria-hidden="true" />
             <KeyHint label="C" />
           </Button>
+          <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute">
+            <MdVolumeOff className="size-7" aria-hidden="true" />
+            <KeyHint label="M" />
+          </Button>
+        </div>
+        {/* Type on TV — inline quick-IME row, sits with the remote keys */}
+        <div className="lg:col-span-2">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Search, notes, URLs — Enter sends"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
+              disabled={!isReady}
+              className="h-14 flex-1 text-base sm:h-16 lg:h-20"
+              aria-label="Text to type on TV"
+            />
+            <Button
+              className={cn("h-14 w-14 shrink-0 rounded-full sm:h-16 sm:w-16 lg:h-20 lg:w-20", press)}
+              variant="default"
+              onClick={sendTextNow}
+              disabled={!isReady || !text.trim()}
+              aria-label="Send to TV"
+              title="Send to TV"
+            >
+              <MdChevronRight className="size-8 lg:size-9" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
         {/* Connected D-pad */}
-        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-background/40 p-2 sm:gap-3 sm:p-3">
+        <div className="grid grid-cols-3 content-center gap-2 rounded-2xl border border-border/70 bg-background/40 p-2 sm:gap-3 sm:p-3 lg:gap-3 lg:p-3">
           <span aria-hidden="true" />
           <Button className={cn("relative h-14 sm:h-16 lg:h-20", press)} variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up">
             <MdKeyboardArrowUp className="size-8" aria-hidden="true" />
@@ -524,8 +519,9 @@ export default function RemotePage() {
           <span aria-hidden="true" />
         </div>
 
-        {/* Media transport, grouped like a player */}
-        <div className="grid grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+        {/* Media rail — transport above rocker, stretches to D-pad height on lg+ */}
+        <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
           <Button className={cn("h-14 sm:h-16 lg:h-20", press)} variant="outline" onClick={() => sendKey("KEYCODE_MEDIA_REWIND")} disabled={!isReady} aria-label="Rewind" title="Rewind">
             <MdFastRewind className="size-6" aria-hidden="true" />
           </Button>
@@ -549,78 +545,19 @@ export default function RemotePage() {
           </Button>
         </div>
 
-        {/* Volume — segmented rocker, thumb zone */}
-        <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border">
-          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down">
+        {/* Volume — two-key segmented rocker, thumb zone */}
+        <div className="grid flex-1 grid-cols-2 divide-x divide-border overflow-hidden rounded-xl border border-border">
+          <Button className={cn("relative h-16 rounded-none border-0 bg-card sm:h-20 lg:h-full lg:min-h-24", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down">
             <MdVolumeDown className="size-7" aria-hidden="true" />
             <KeyHint label="−" />
           </Button>
-          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} aria-label="Mute" title="Mute">
-            <span className="flex items-center gap-2">
-              <MdVolumeMute className="size-6" aria-hidden="true" />
-              <span className="text-sm font-medium">Mute</span>
-            </span>
-            <KeyHint label="M" />
-          </Button>
-          <Button className={cn("relative h-16 rounded-none border-0 bg-card lg:h-20", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up">
+          <Button className={cn("relative h-16 rounded-none border-0 bg-card sm:h-20 lg:h-full lg:min-h-24", press)} variant="ghost" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up">
             <MdVolumeUp className="size-7" aria-hidden="true" />
             <KeyHint label="+" />
           </Button>
         </div>
+        </div>
       </section>
-
-      {/* Command rail — text input and app launcher */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Type on TV…"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
-              disabled={!isReady}
-              className="h-12 sm:h-14"
-              aria-label="Text to type on TV"
-            />
-            <Button className={cn("h-12 sm:h-14", press)} onClick={sendTextNow} disabled={!isReady || !text.trim()}>
-              Send
-            </Button>
-          </div>
-          <p className="mt-1.5 px-0.5 text-[11px] leading-relaxed text-muted-foreground">
-            Keys pause while you type · Enter sends to the TV
-          </p>
-        </div>
-
-        {/* App launcher — letter monograms, brand colors */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {APP_TILES.map((app, index) => (
-            <button
-              key={app.name}
-              type="button"
-              className={cn(
-                "relative flex h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-1 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 sm:h-20",
-                press,
-              )}
-              onClick={() => launchApp(app.link)}
-              disabled={!isReady}
-              title={app.name}
-              aria-label={`Launch ${app.name}`}
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-7 items-center justify-center rounded-full text-[13px] font-bold text-white sm:size-8 sm:text-sm"
-                style={{ backgroundColor: app.brand }}
-              >
-                {app.letter}
-              </span>
-              <span className="w-full truncate text-center text-[10px] font-medium leading-none sm:text-[11px]">
-                {app.name}
-              </span>
-              <KeyHint label={String(index + 1)} />
-            </button>
-          ))}
-        </div>
-      </div>
 
       <Dialog
         open={showPairDialog}

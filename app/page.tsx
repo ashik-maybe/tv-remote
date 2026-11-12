@@ -72,7 +72,7 @@ export default function Home() {
   const newFindings = discovered.filter((d) => !savedSet.has(d.host))
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-5 p-4 pb-10 sm:max-w-xl">
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-5 p-4 pb-10 sm:max-w-2xl">
       <header className="flex items-center gap-3 pt-2">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold leading-tight">TV Remote</h1>
@@ -211,12 +211,14 @@ export default function Home() {
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <Button
-                        variant="ghost"
-                        size="icon"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-muted-foreground hover:text-foreground"
                         aria-label={`Remove ${d.host}`}
                         onClick={() => remove(d.host)}
                       >
                         <MdDelete className="size-4" aria-hidden="true" />
+                        Remove
                       </Button>
                       <Button onClick={() => router.push(`/remote/${encodeURIComponent(d.host)}`)}>
                         Open

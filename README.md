@@ -52,8 +52,7 @@ page (Settings → Network → IP address on the TV).
 ## Keyboard control
 
 The remote page is fully keyboard-operable while the TV is connected
-(keys are paused while you type in a field, and while the pairing dialog
-is open):
+(keys are paused while you type in a field, and while a dialog is open):
 
 | Key | Action | Key | Action |
 |---|---|---|---|
@@ -61,8 +60,8 @@ is open):
 | `Enter` | OK | `M` | Mute |
 | `Backspace` / `Esc` | Back | `[` / `]` | Previous / Next |
 | `Space` / `K` | Play · Pause | `P` | Power |
-| `H` | Home | `1`–`4` | YouTube, Netflix, Prime Video, Disney+ |
-| `C` | Menu | `D` | Toggle theme |
+| `H` | Home | `D` | Toggle theme |
+| `C` | Menu | — | — |
 
 The remote screen can pin a corner chip to each button showing its
 shortcut key. Chips are off by default — enable them with the
@@ -72,12 +71,23 @@ fine pointer) and are hidden entirely on touch screens.
 
 ## Remote screen
 
-- **Responsive layout** — phones get the stacked thumb-zone layout
-  (volume at the bottom, near your thumb); tablets and large screens
-  switch to a two-column grid (nav band + connected D-pad and remote
-  surface left, text input and app tiles right) with larger, ≥64 px
-  targets. The nav band (Back · Home · Menu), transport row and segmented
-  volume rocker live inside one remote surface.
+- **Mute** — the nav band carries a static icon-only mute key with a
+  crossed-speaker glyph. The TV's reported mute state still shows in
+  the volume strip text (`Vol x/y · muted`), but the key itself never
+  renders state — nothing to misread while couch-tapping.
+- **Icon & label rules** — remote keys (nav band, D-pad, transport,
+  volume, power) are icon-only with accessible labels. Toggles that
+  carry state (Day/Night, Hints) are icon + current-state word.
+  Everything else in chrome, forms and rows is text-first with an
+  optional leading icon — never icon-only. Universal glyphs (back
+  arrow, dismiss ✕) are the only icon-only exceptions.
+- **Responsive layout** — phones keep the stacked thumb-zone layout
+  (volume near your thumb). From `lg` up, the remote surface becomes a
+  two-pane grid — nav band and type-on-TV row span both panes, D-pad
+  left, transport rail + stretching volume rocker right — sized so the
+  whole remote fits without scrolling on desktop windows. Targets are
+  ≥64 px throughout. The nav band (Back · Home · Menu · Mute) and
+  two-key segmented rocker live inside one remote surface.
 - **Media transport** — grouped Rewind · Previous · Play/Pause ·
   Next · Fast Forward row.
 - **Haptics** — a short vibration on every key press (best-effort;
@@ -86,8 +96,10 @@ fine pointer) and are hidden entirely on touch screens.
 - **Status badge** — appears in the header only while pairing,
   connecting, or error — a healthy connection shows no badge at all
   (the TV's current app and volume live in the strip below the header).
-- **App launcher** — letter-monogram tiles (YouTube, Netflix, Prime
-  Video, Disney+), each bound to hotkeys `1`–`4`.
+- **Type on TV** — an inline input row sits inside the remote surface,
+  directly under the nav band. Enter sends, or tap the icon-only
+  chevron send button. Text is injected as keystrokes into whatever
+  field the TV has focused.
 - **Device switcher** — the header menu lists your saved TVs for
   one-tap switching without returning home.
 - **Accessibility** — visible focus rings, labels on every control,
@@ -138,7 +150,6 @@ For "add to home screen" on Android, the page must be served over HTTPS
 | `/api/remote/key` | POST | `{host, keyCode \| key, direction?}` | send key / named `RemoteKeyCode` |
 | `/api/remote/power` | POST | `{host}` | toggle power |
 | `/api/remote/text` | POST | `{host, text}` | IME text injection |
-| `/api/remote/app` | POST | `{host, link}` | launch app deep link |
 | `/api/remote/state` | GET | `?host=` | state snapshot |
 | `/api/health` | GET | — | smoke check |
 | `/api/discover` | GET | — | list TVs found on the LAN (mDNS + port probe) |
