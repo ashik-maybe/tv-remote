@@ -49,6 +49,28 @@ ports `6467`/`6466`, then lists what it found. Tap **Add** to pair. If
 the scan finds nothing, you can enter the TV's IP manually from the home
 page (Settings → Network → IP address on the TV).
 
+## Keyboard control
+
+The remote page is fully keyboard-operable while the TV is connected
+(keys are paused while you type in a field, and while the pairing dialog
+is open):
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| `←` `↑` `↓` `→` | D-pad | `+` / `−` | Volume up / down |
+| `Enter` | OK | `M` | Mute |
+| `Backspace` / `Esc` | Back | `[` / `]` | Previous / Next |
+| `Space` / `K` | Play · Pause | `P` | Power |
+| `H` | Home | `1`–`4` | YouTube, Netflix, Prime Video, Disney+ |
+| `C` | Menu | `D` | Toggle theme |
+
+Hover any button on the remote screen to see its key. The keyboard icon
+in the header toggles an on-screen shortcut card.
+
+Pairing: when the TV shows a 6-digit code, type it and press **Enter** or
+the **Pair TV** button. If the connection fails first, the page still
+offers an **Enter code** button so the code field is always reachable.
+
 ## How discovery works
 
 `GET /api/discover` performs two things concurrently:

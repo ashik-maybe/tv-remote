@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw } from "lucide-react"
+import { ArrowLeft, Power, Tv, Volume2, VolumeX, Volume1, Play, Pause, SkipBack, SkipForward, Home, Menu, CornerUpLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, RotateCcw, Keyboard } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,11 +29,36 @@ function buzz(ms = 8) {
   }
 }
 
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  )
+}
+
 const APP_SHORTCUTS: { label: string; link: string }[] = [
   { label: "YouTube", link: "https://www.youtube.com" },
   { label: "Netflix", link: "https://www.netflix.com" },
   { label: "Prime Video", link: "https://www.primevideo.com" },
   { label: "Disney+", link: "https://www.disneyplus.com" },
+]
+
+const SHORTCUT_ROWS: { keys: string; label: string }[] = [
+  { keys: "← ↑ ↓ →", label: "D-pad" },
+  { keys: "Enter", label: "OK" },
+  { keys: "Bksp · Esc", label: "Back" },
+  { keys: "Space · K", label: "Play · Pause" },
+  { keys: "H", label: "Home" },
+  { keys: "C", label: "Menu" },
+  { keys: "P", label: "Power" },
+  { keys: "+ / −", label: "Volume" },
+  { keys: "M", label: "Mute" },
+  { keys: "[ · ]", label: "Prev · Next" },
+  { keys: "1 – 4", label: "App shortcuts" },
+  { keys: "D", label: "Toggle theme" },
 ]
 
 export default function RemotePage() {
@@ -48,8 +73,13 @@ export default function RemotePage() {
   const [text, setText] = useState("")
   const [pairDismissed, setPairDismissed] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const codeInputRef = useRef<HTMLInputElement | null>(null)
+  const sendKeyRef = useRef<(key: string) => Promise<void>>(() => Promise.resolve())
+  const sendPowerRef = useRef<() => Promise<void>>(() => Promise.resolve())
+  const remoteStateRef = useRef({ isReady: false, pairOpen: false })
+  const unreadyToastAtRef = useRef(0)
 
   const refresh = useCallback(async () => {
     try {
@@ -101,7 +131,7 @@ export default function RemotePage() {
     }
   }, [host])
 
-  const sendKey = async (key: string) => {
+  const sendKey = useCallback(async (key: string) => {
     if (key === "KEYCODE_DPAD_CENTER") buzz(10)
     try {
       await postJson("/api/remote/key", { host, key })
@@ -109,12 +139,16 @@ export default function RemotePage() {
     } catch (e) {
       toast.error("Command failed", {
         description: e instanceof Error ? e.message : String(e),
-        action: { label: "Retry", onClick: () => void sendKey(key) },
+        action: { label: "Retry", onClick: () => void sendKeyRef.current(key) },
       })
     }
-  }
+  }, [host, refresh])
 
-  const sendPower = async () => {
+  useEffect(() => {
+    sendKeyRef.current = sendKey
+  }, [sendKey])
+
+  const sendPower = useCallback(async () => {
     buzz(10)
     try {
       await postJson("/api/remote/power", { host })
@@ -122,10 +156,14 @@ export default function RemotePage() {
     } catch (e) {
       toast.error("Power command failed", {
         description: e instanceof Error ? e.message : String(e),
-        action: { label: "Retry", onClick: () => void sendPower() },
+        action: { label: "Retry", onClick: () => void sendPowerRef.current() },
       })
     }
-  }
+  }, [host, refresh])
+
+  useEffect(() => {
+    sendPowerRef.current = sendPower
+  }, [sendPower])
 
   const submitPairCode = async () => {
     const finalCode = code.trim()
@@ -168,7 +206,7 @@ export default function RemotePage() {
     }
   }
 
-  const launchApp = async (link: string) => {
+  const launchApp = useCallback(async (link: string) => {
     buzz(6)
     try {
       await postJson("/api/remote/app", { host, link })
@@ -178,7 +216,7 @@ export default function RemotePage() {
         description: e instanceof Error ? e.message : String(e),
       })
     }
-  }
+  }, [host, refresh])
 
   const state = snap?.state ?? "connecting"
   const isReady = state === "ready"
@@ -190,6 +228,130 @@ export default function RemotePage() {
     const timer = setTimeout(() => codeInputRef.current?.focus(), 80)
     return () => clearTimeout(timer)
   }, [showPairDialog])
+
+  useEffect(() => {
+    remoteStateRef.current = { isReady, pairOpen: showPairDialog }
+  })
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (remoteStateRef.current.pairOpen) return // pairing dialog owns the keyboard
+      if (isTypingTarget(event.target)) return
+
+      const targetIsButton =
+        event.target instanceof HTMLElement && event.target.tagName === "BUTTON"
+
+      const key = event.key
+      const isSpace = key === " " || event.code === "Space"
+
+      const allowRepeat =
+        key.startsWith("Arrow") ||
+        key === "+" ||
+        key === "=" ||
+        key === "-" ||
+        key === "_" ||
+        key === "k" ||
+        key === "K" ||
+        isSpace
+      if (event.repeat && !allowRepeat) return
+
+      let action: (() => void) | null = null
+      switch (key) {
+        case "ArrowUp":
+          action = () => sendKey("KEYCODE_DPAD_UP")
+          break
+        case "ArrowDown":
+          action = () => sendKey("KEYCODE_DPAD_DOWN")
+          break
+        case "ArrowLeft":
+          action = () => sendKey("KEYCODE_DPAD_LEFT")
+          break
+        case "ArrowRight":
+          action = () => sendKey("KEYCODE_DPAD_RIGHT")
+          break
+        case "Enter":
+          if (targetIsButton) return // let the focused button act natively
+          action = () => sendKey("KEYCODE_DPAD_CENTER")
+          break
+        case " ":
+        case "Spacebar":
+          if (targetIsButton) return // let the focused button act natively
+          action = () => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")
+          break
+        case "k":
+        case "K":
+          action = () => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")
+          break
+        case "Backspace":
+        case "Escape":
+          action = () => sendKey("KEYCODE_BACK")
+          break
+        case "Home":
+        case "h":
+        case "H":
+          action = () => sendKey("KEYCODE_HOME")
+          break
+        case "c":
+        case "C":
+        case "ContextMenu":
+          action = () => sendKey("KEYCODE_MENU")
+          break
+        case "p":
+        case "P":
+          action = () => void sendPower()
+          break
+        case "+":
+        case "=":
+          action = () => sendKey("KEYCODE_VOLUME_UP")
+          break
+        case "-":
+        case "_":
+          action = () => sendKey("KEYCODE_VOLUME_DOWN")
+          break
+        case "m":
+        case "M":
+          action = () => sendKey("KEYCODE_VOLUME_MUTE")
+          break
+        case "[":
+          action = () => sendKey("KEYCODE_MEDIA_PREVIOUS")
+          break
+        case "]":
+          action = () => sendKey("KEYCODE_MEDIA_NEXT")
+          break
+        case "1":
+        case "2":
+        case "3":
+        case "4": {
+          const app = APP_SHORTCUTS[Number(key) - 1]
+          if (app) action = () => launchApp(app.link)
+          break
+        }
+        default:
+          return
+      }
+
+      if (!action) return
+      event.preventDefault()
+
+      if (!remoteStateRef.current.isReady) {
+        const now = Date.now()
+        if (now - unreadyToastAtRef.current > 4000) {
+          unreadyToastAtRef.current = now
+          toast.error("TV isn't connected yet", {
+            description: "Connect or finish pairing first — keys won't reach the TV.",
+          })
+        }
+        return
+      }
+      action()
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [sendKey, sendPower, launchApp])
+
   const statusLabel =
     state === "ready" ? "Connected" : state === "pairing" ? "Awaiting code" : state === "error" ? "Error" : "Connecting"
   const statusDot =
@@ -209,6 +371,16 @@ export default function RemotePage() {
           <span className={`size-1.5 rounded-full ${statusDot}`} aria-hidden="true" />
           {statusLabel}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Keyboard shortcuts"
+          aria-pressed={shortcutsOpen}
+          title="Keyboard shortcuts"
+          onClick={() => setShortcutsOpen((open) => !open)}
+        >
+          <Keyboard className="size-5" aria-hidden="true" />
+        </Button>
         <ThemeToggle />
       </header>
 
@@ -233,7 +405,7 @@ export default function RemotePage() {
             className="shrink-0"
             onClick={sendPower}
             disabled={!isReady}
-            aria-label="Toggle power"
+            aria-label="Toggle power" title="Power (P)"
           >
             <Power className="size-5" aria-hidden="true" />
           </Button>
@@ -284,31 +456,31 @@ export default function RemotePage() {
 
       <div className="rounded-2xl border border-border bg-card p-3">
         <div className="grid grid-cols-3 gap-2">
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_HOME")} disabled={!isReady} aria-label="Home" title="Home (H)">
             <Home className="size-6" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_UP")} disabled={!isReady} aria-label="D-pad up" title="Up (↑)">
             <ChevronUp className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_BACK")} disabled={!isReady} aria-label="Back" title="Back (Backspace · Esc)">
             <CornerUpLeft className="size-6" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_LEFT")} disabled={!isReady} aria-label="D-pad left" title="Left (←)">
             <ChevronLeft className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80" onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK">
+          <Button className="h-14 rounded-full bg-primary text-primary-foreground hover:bg-primary/80" onClick={() => sendKey("KEYCODE_DPAD_CENTER")} disabled={!isReady} aria-label="OK" title="OK (Enter)">
             <span className="text-base font-bold">OK</span>
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_RIGHT")} disabled={!isReady} aria-label="D-pad right" title="Right (→)">
             <ChevronRight className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MENU")} disabled={!isReady} aria-label="Menu" title="Menu (C)">
             <Menu className="size-6" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_DPAD_DOWN")} disabled={!isReady} aria-label="D-pad down" title="Down (↓)">
             <ChevronDown className="size-7" aria-hidden="true" />
           </Button>
-          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause">
+          <Button className="h-14" variant="secondary" onClick={() => sendKey("KEYCODE_MEDIA_PLAY_PAUSE")} disabled={!isReady} aria-label="Play or pause" title="Play / Pause (Space · K)">
             <span className="flex items-center gap-0.5">
               <Play className="size-5" aria-hidden="true" />
               <Pause className="size-5" aria-hidden="true" />
@@ -318,21 +490,21 @@ export default function RemotePage() {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous">
+        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_PREVIOUS")} disabled={!isReady} aria-label="Previous" title="Previous ([)">
           <SkipBack className="size-5" aria-hidden="true" />
         </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next">
+        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_MEDIA_NEXT")} disabled={!isReady} aria-label="Next" title="Next (])">
           <SkipForward className="size-5" aria-hidden="true" />
         </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down">
+        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_DOWN")} disabled={!isReady} aria-label="Volume down" title="Volume down (-)">
           <Volume1 className="size-5" aria-hidden="true" />
         </Button>
-        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up">
+        <Button variant="outline" className="h-14" onClick={() => sendKey("KEYCODE_VOLUME_UP")} disabled={!isReady} aria-label="Volume up" title="Volume up (+)">
           <Volume2 className="size-5" aria-hidden="true" />
         </Button>
       </div>
 
-      <Button variant="outline" className="h-12 w-full" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady}>
+      <Button variant="outline" className="h-12 w-full" onClick={() => sendKey("KEYCODE_VOLUME_MUTE")} disabled={!isReady} title="Mute (M)">
         <VolumeX className="size-5" aria-hidden="true" />
         Mute
       </Button>
@@ -353,18 +525,56 @@ export default function RemotePage() {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        {APP_SHORTCUTS.map((a) => (
+        {APP_SHORTCUTS.map((a, index) => (
           <Button
             key={a.label}
             variant="secondary"
             className="h-12 text-xs"
             onClick={() => launchApp(a.link)}
             disabled={!isReady}
+            title={`${a.label} — press ${index + 1}`}
           >
             {a.label}
           </Button>
         ))}
       </div>
+
+      {shortcutsOpen && (
+        <section
+          aria-label="Keyboard shortcuts"
+          className="rounded-2xl border border-border bg-card p-4"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Keyboard shortcuts
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(false)}
+              className="rounded text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Close
+            </button>
+          </div>
+          <ul className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+            {SHORTCUT_ROWS.map(({ keys, label }) => (
+              <li
+                key={label}
+                className="flex items-center gap-2 rounded-lg border border-border/60 px-2 py-1.5"
+              >
+                <kbd className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                  {keys}
+                </kbd>
+                <span className="truncate text-muted-foreground">{label}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Keys work while this page is focused and the TV is connected. Shortcuts are
+            paused while typing in a field and while the pairing dialog is open.
+          </p>
+        </section>
+      )}
 
       <Dialog
         open={showPairDialog}
