@@ -1,7 +1,7 @@
 "use client"
 
 import { useSyncExternalStore } from "react"
-import { useTheme } from "next-themes"
+import { setTheme, useThemeMode } from "@/lib/theme-store"
 import { Monitor, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -15,7 +15,7 @@ const meta: Record<Mode, { label: string; Icon: typeof Monitor }> = {
 }
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const theme = useThemeMode()
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,

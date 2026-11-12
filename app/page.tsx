@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { getJson } from "@/lib/api"
+import { useSavedDevices, setSavedDevices, type SavedDevice } from "@/lib/devices-store"
 
 export interface DiscoveredDevice {
   host: string
@@ -19,49 +20,18 @@ export interface DiscoveredDevice {
   via: "mdns" | "probe" | "both"
 }
 
-interface SavedDevice {
-  host: string
-  name?: string | null
-}
-
-const STORAGE_KEY = "tv-remote:devices"
-
-function loadSaved(): SavedDevice[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (Array.isArray(parsed) && parsed.every((p) => typeof p === "string")) {
-      return (parsed as string[]).map((host) => ({ host }))
-    }
-    if (Array.isArray(parsed)) {
-      return (parsed as SavedDevice[]).filter((d) => d && typeof d.host === "string")
-    }
-    return []
-  } catch {
-    return []
-  }
-}
-
 export default function Home() {
   const router = useRouter()
   const [manualHost, setManualHost] = useState("")
   const [manualOpen, setManualOpen] = useState(false)
-  const [saved, setSaved] = useState<SavedDevice[]>(() =>
-    typeof window === "undefined" ? [] : loadSaved(),
-  )
+  const saved = useSavedDevices()
   const [isScanning, setIsScanning] = useState(false)
   const [hasScanned, setHasScanned] = useState(false)
   const [discovered, setDiscovered] = useState<DiscoveredDevice[]>([])
   const [scanError, setScanError] = useState<string | null>(null)
 
   const persist = useCallback((next: SavedDevice[]) => {
-    setSaved(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } catch {
-      // ignore storage failures
-    }
+    setSavedDevices(next)
   }, [])
 
   const addAndOpen = useCallback(

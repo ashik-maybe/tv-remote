@@ -17,6 +17,13 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+// Runs at HTML parse time, before hydration and before first paint, so the
+// correct class is already on <html> — no flash of the wrong theme.
+// Raw <script> inside a *server* component ships as literal HTML (same
+// pattern as the JSON-LD guide); a script in a *client* component would
+// never execute on the client. Mirrors lib/theme-store.ts.
+const themeInit = `(function(){try{var mode=localStorage.getItem("theme");if(mode!=="light"&&mode!=="dark"&&mode!=="system")mode="system";var resolved=mode==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):mode;var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +36,8 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", outfit.variable)}
     >
       <body>
-        <ThemeProvider defaultTheme="system" enableSystem>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        <ThemeProvider>
           {children}
           <Toaster position="top-center" />
         </ThemeProvider>
