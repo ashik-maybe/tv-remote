@@ -7,7 +7,7 @@ export function KeyHint({ label }: { label: string }) {
   return (
     <kbd
       aria-hidden="true"
-      className="pointer-events-none absolute right-1.5 top-1 hidden h-4 min-w-4 select-none items-center justify-center rounded border border-border/70 bg-background/80 px-1 font-mono text-[9px] leading-none text-muted-foreground [@media(hover:hover)and(pointer:fine)]:inline-flex"
+      className="pointer-events-none absolute right-1.5 top-1 hidden h-4 min-w-4 select-none items-center justify-center rounded border border-border/70 bg-background/80 px-1 font-mono text-[9px] leading-none text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:inline-flex"
     >
       {label}
     </kbd>

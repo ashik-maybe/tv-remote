@@ -18,7 +18,7 @@ export function ThemeToggle() {
       aria-pressed={isDark}
       aria-label={`Theme: ${label}. Tap to switch.`}
       title={`Theme: ${label}`}
-      className="relative shrink-0 gap-1.5 text-muted-foreground hover:text-foreground [@media(hover:hover)and(pointer:fine)]:pr-7"
+      className="relative shrink-0 gap-1.5 text-muted-foreground hover:text-foreground [@media(hover:hover)_and_(pointer:fine)]:pr-7"
     >
       {isDark ? (
         <MdDarkMode className="size-4" aria-hidden="true" />
