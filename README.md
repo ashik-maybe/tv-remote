@@ -19,7 +19,10 @@ a Node-backed route handler talks to the TV using Google's official
   (gitignored). Reconnects reuse the stored cert — no PIN.
 - Live state (power, volume, foreground app) is pushed from the TV and
   exposed via `GET /api/pair/status?host=` which the UI polls.
-- Device list is stored in `localStorage`; add TVs by IP, no mDNS yet.
+- Device list is stored in `localStorage`. TVs are found automatically by
+  scanning the LAN (see below) — no IP typing required for most setups.
+- Themes: follows your OS theme by default; tap the theme button (top
+  right) to cycle System → Day → Night.
 
 ## Requirements
 
@@ -40,9 +43,29 @@ bun pm trust protobufjs   # required once: protobufjs postinstall is blocked by 
 bun run dev               # http://localhost:3000
 ```
 
-Open the app in a browser on the LAN, add the TV's IP
-(Settings → Network → IP address on the TV), tap **Open**, and enter the
-6-digit code shown on the TV when prompted.
+Open the app in a browser on the LAN and tap **Scan network** — the
+server browses mDNS (`_androidtvremote2._tcp`) and probes the subnet for
+ports `6467`/`6466`, then lists what it found. Tap **Add** to pair. If
+the scan finds nothing, you can enter the TV's IP manually from the home
+page (Settings → Network → IP address on the TV).
+
+## How discovery works
+
+`GET /api/discover` performs two things concurrently:
+
+1. **mDNS browse** for `_androidtvremote2._tcp` (3s) — finds TVs that
+   advertise the Android TV Remote service and reports their friendly
+   name. Certified Android TVs / Google TVs advertise this.
+2. **Subnet TCP probe** of the server's own IPv4 /24 (254 hosts, ~300ms
+   timeout, 64 concurrent connections) — tries `:6467` then `:6466`.
+   Finds devices running the service even without mDNS, including
+   devices whose mDNS never gets through (router filtering, AP isolation
+   between bands, etc.), though it cannot learn their names.
+
+Results are unioned and de-duplicated by IP; each device reports
+`via: "mdns" | "probe" | "both"`. The scan runs only when you press the
+button. IPv6 and multi-subnet setups are not handled; phone, server, and
+TV must share one IPv4 LAN.
 
 ## Production
 
@@ -70,6 +93,7 @@ For "add to home screen" on Android, the page must be served over HTTPS
 | `/api/remote/app` | POST | `{host, link}` | launch app deep link |
 | `/api/remote/state` | GET | `?host=` | state snapshot |
 | `/api/health` | GET | — | smoke check |
+| `/api/discover` | GET | — | list TVs found on the LAN (mDNS + port probe) |
 
 ## Scripts
 
@@ -90,5 +114,5 @@ For "add to home screen" on Android, the page must be served over HTTPS
 
 ## Not implemented yet
 
-ADB fallback for uncertified boxes, mDNS discovery, SSE/WebSocket push,
-PWA/HTTPS, multi-user auth.
+ADB fallback for uncertified boxes, SSE/WebSocket push (currently 1.5s
+polling), PWA/HTTPS, multi-user auth, IPv6/multi-subnet discovery.
