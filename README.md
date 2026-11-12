@@ -64,9 +64,11 @@ is open):
 | `H` | Home | `1`–`4` | YouTube, Netflix, Prime Video, Disney+ |
 | `C` | Menu | `D` | Toggle theme |
 
-Hover any button on the remote screen to see its key — the shortcut
-chip is pinned to the button's corner and only shows on desktops
-(hover + fine pointer); touch screens show none.
+The remote screen can pin a corner chip to each button showing its
+shortcut key. Chips are off by default — enable them with the
+keyboard-icon **Hints** button in the header; the setting is
+remembered on this device. They render only on desktops (hover +
+fine pointer) and are hidden entirely on touch screens.
 
 ## Remote screen
 

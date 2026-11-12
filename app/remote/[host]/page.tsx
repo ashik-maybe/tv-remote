@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { KeyHintToggle } from "@/components/key-hint-toggle"
 import { DeviceSwitcher } from "@/components/device-switcher"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -389,6 +390,7 @@ export default function RemotePage() {
             <span className="truncate">{statusLabel}</span>
           </Badge>
         )}
+        <KeyHintToggle />
         <ThemeToggle />
       </header>
 

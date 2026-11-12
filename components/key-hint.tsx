@@ -1,9 +1,21 @@
+"use client"
+
+import { useKeyHintsEnabled } from "@/lib/hint-store"
+
 /**
  * Keyboard shortcut chip pinned to the top-right corner of a control.
- * Shown only on devices with hover + a fine pointer (desktop keyboards);
- * invisible on touch — couch users see nothing extra.
+ * Hidden by default; enable with the keyboard toggle in the remote page
+ * header. Even then it only renders on devices with hover + a fine pointer
+ * (desktop keyboards) — touch users never see it. aria-hidden, never
+ * interactive.
  */
 export function KeyHint({ label }: { label: string }) {
+  const enabled = useKeyHintsEnabled()
+
+  if (!enabled) {
+    return null
+  }
+
   return (
     <kbd
       aria-hidden="true"
