@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeOff, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdChevronRight, MdHelpOutline, MdRefresh, MdClose } from "react-icons/md"
+import { MdArrowBack, MdPowerSettingsNew, MdTv, MdVolumeUp, MdVolumeOff, MdVolumeDown, MdPlayArrow, MdPause, MdSkipPrevious, MdSkipNext, MdFastRewind, MdFastForward, MdHome, MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdChevronRight, MdBackspace, MdHelpOutline, MdRefresh, MdClose } from "react-icons/md"
 import { KeyHint } from "@/components/key-hint"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -139,6 +139,27 @@ export default function RemotePage() {
   useEffect(() => {
     sendKeyRef.current = sendKey
   }, [sendKey])
+
+  // Backspace for the TV's focused field: one DEL on tap, DEL burst on hold.
+  // Pointer path keeps focus in the text field (preventDefault) so she never
+  // loses her place; keyboard path rides Enter/Space natively.
+  const delBurstRef = useRef<{ delay: ReturnType<typeof setTimeout> | null; repeat: ReturnType<typeof setInterval> | null }>({
+    delay: null,
+    repeat: null,
+  })
+  const stopDelBurst = useCallback(() => {
+    if (delBurstRef.current.delay) clearTimeout(delBurstRef.current.delay)
+    if (delBurstRef.current.repeat) clearInterval(delBurstRef.current.repeat)
+    delBurstRef.current = { delay: null, repeat: null }
+  }, [])
+  const startDelBurst = useCallback(() => {
+    stopDelBurst()
+    void sendKeyRef.current("KEYCODE_DEL")
+    delBurstRef.current.delay = setTimeout(() => {
+      delBurstRef.current.repeat = setInterval(() => void sendKeyRef.current("KEYCODE_DEL"), 60)
+    }, 400)
+  }, [stopDelBurst])
+  useEffect(() => stopDelBurst, [stopDelBurst])
 
   const sendPower = useCallback(async () => {
     buzz(10)
@@ -475,10 +496,35 @@ export default function RemotePage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendTextNow()}
+              enterKeyHint="go"
               disabled={!isReady}
               className="h-14 flex-1 text-base sm:h-16 lg:h-20"
               aria-label="Text to type on TV"
             />
+            <Button
+              type="button"
+              className={cn("h-14 w-14 shrink-0 touch-none select-none rounded-full sm:h-16 sm:w-16 lg:h-20 lg:w-20", press)}
+              variant="outline"
+              disabled={!isReady}
+              aria-label="Backspace — hold to repeat"
+              title="Backspace — hold to repeat"
+              onPointerDown={(e) => {
+                e.preventDefault()
+                startDelBurst()
+              }}
+              onPointerUp={stopDelBurst}
+              onPointerLeave={stopDelBurst}
+              onPointerCancel={stopDelBurst}
+              onContextMenu={(e) => e.preventDefault()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  void sendKeyRef.current("KEYCODE_DEL")
+                }
+              }}
+            >
+              <MdBackspace className="size-7" aria-hidden="true" />
+            </Button>
             <Button
               className={cn("h-14 w-14 shrink-0 rounded-full sm:h-16 sm:w-16 lg:h-20 lg:w-20", press)}
               variant="default"

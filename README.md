@@ -36,7 +36,10 @@ on the home page (IP is on the TV at Settings → Network → IP address).
   forward), and a two-key volume rocker.
 - **Type on TV** — an inline text bar inside the remote surface (under the
   nav band) that injects keystrokes into whatever field the TV has focused.
-  Enter sends, or tap the circular send button.
+  Enter sends (the mobile keyboard's action key reads Go), or tap the
+  circular chevron send button. A circular backspace button sends DEL —
+  tap repeatedly or hold to burst-delete, which works even on text the
+  TV already had.
 - **Saved TVs** — the home page lists your TVs, scanned TVs can be added in
   one tap, saved rows can be **renamed in place** (Enter saves, Escape
   cancels), and the remote page has a header switcher to jump between TVs.
